@@ -283,7 +283,7 @@ dialog#cal{width:min(940px,96vw)}
    Rain: pasted Rain Alarm Pro / Windy radar screenshots only — no network
    ══════════════════════════════════════════════════════════════════ */
 var NS            = "rainbulletin-my";
-var CACHE_VERSION = "rbmy-v3.5.0-20260727";
+var CACHE_VERSION = "rbmy-v3.5.1-20260727";
 var SEED_VERSION  = 3;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -341,6 +341,7 @@ var I18N = {
     zrGauge:"\u5b9e\u6d4b mm/h", zrDbz:"\u5f53\u65f6 dBZ", zrDoFit:"\u7528\u5b9e\u6d4b\u62df\u5408",
     zrNeed:"\u81f3\u5c11\u9700\u8981 3 \u7ec4\u5bf9\u7167", zrFitted:"\u5df2\u62df\u5408", mdlRate:"\u63a8\u7b97",
     zrCross:"\u4ece\u4e24\u56fe\u914d\u5bf9", zrClear:"\u6e05\u7a7a\u5bf9\u7167",
+    zrBadFit:"\u4e24\u8005\u4e0d\u4e00\u81f4\uff0c\u4e0d\u53ef\u7528",
     zrNoCross:"\u9700\u8981\u540c\u65f6\u8d34\u5165 Rain Alarm \u4e0e Windy \u4e24\u5f20\u56fe", recalled:"\u6cbf\u7528\u5df2\u5b58\u5b9a\u4f4d", queued:"\u5f85\u5904\u7406", wetCount:"\u53bf\u5c5e\u6709\u96e8", shapeAt:"\u8f6e\u5ed3\u5339\u914d", margin:"\u9886\u5148", more:"\u66f4\u591a\u53bf\u5c5e", listMin:"\u540d\u5355\u2265\u5c0f\u96e8",
     scanning:"\u8bc6\u522b\u4e2d\u2026\u8bf7\u7a0d\u5019", scanOk:"\u5df2\u5b9a\u4f4d", scanNo:"\u65e0\u6cd5\u81ea\u52a8\u5b9a\u4f4d \u2014 \u8bf7\u6539\u7528\u624b\u52a8\u70b9\u9009",
     manual:"\u624b\u52a8\u70b9\u9009", rescan:"\u91cd\u65b0\u8bc6\u522b", zoomAt:"\u56fe\u5185\u5c3a\u5ea6",
@@ -382,6 +383,7 @@ var I18N = {
     zrGauge:"Gauge mm/h", zrDbz:"dBZ then", zrDoFit:"Fit from pairs",
     zrNeed:"Needs at least 3 pairs", zrFitted:"Fitted", mdlRate:"modelled",
     zrCross:"Pair from two images", zrClear:"Clear pairs",
+    zrBadFit:"sources disagree \u2014 not usable",
     zrNoCross:"Needs a Rain Alarm and a Windy layer loaded together", recalled:"Reused saved calibration", queued:"queued", wetCount:"districts raining", shapeAt:"shape match", margin:"margin", more:"more districts", listMin:"list \u2265 light",
     scanning:"Locating\u2026 one moment", scanOk:"Located", scanNo:"Could not locate \u2014 switch to manual anchors",
     manual:"Manual anchors", rescan:"Locate again", zoomAt:"Image scale",
@@ -744,6 +746,28 @@ function mmToStep(mm) {
 }
 var MATCH_D = 0;                 /* distance of the last match, for scoring */
 var MATCH_MM = 0;                /* the matched anchor's own mm/h, unquantised */
+/* Log-spaced bins for a ramp palette's own rates, 0.05 to 500 mm/h. The ladder
+   side reports the step covering its top 15% of wet area, so the ramp side has
+   to report the same percentile — pairing a high percentile against a mean
+   biases the slope flat, which is what wrecked the first cross-calibration. */
+var RB_N = 40, RB_LO = Math.log(0.05), RB_HI = Math.log(500);
+function rateBin(mm) {
+  var t = (Math.log(Math.max(mm, 0.05)) - RB_LO) / (RB_HI - RB_LO);
+  return Math.max(0, Math.min(RB_N - 1, Math.round(t * (RB_N - 1))));
+}
+function binRate(i) { return Math.exp(RB_LO + (i / (RB_N - 1)) * (RB_HI - RB_LO)); }
+function districtRate(t) {
+  if (!t.rHist) return t.rN ? t.rSum / t.rN : 0;
+  var tot = 0, i;
+  for (i = 0; i < RB_N; i++) tot += t.rHist[i];
+  if (!tot) return 0;
+  var need = Math.max(1, Math.round(tot * 0.15)), run = 0;
+  for (i = RB_N - 1; i >= 0; i--) {
+    run += t.rHist[i];
+    if (run >= need) return binRate(i);
+  }
+  return binRate(0);
+}
 function matchStep(pal, r, g, b) {
   var i, d, bd = 1e9, best = 0;
   var tbl = pal.ramp || anchorsFor(pal), lim = pal.ramp ? 60 : 70;
@@ -888,7 +912,8 @@ function bandCompute(r, g, b) {
 function reproject(px32, iw, ih, cal) {
   var R = buildRaster();
   var acc = DIST.map(function () {
-    return { inn:0, out:0, echo:0, hist:[0,0,0,0,0,0,0,0,0,0,0,0,0], rSum:0, rN:0 };
+    return { inn:0, out:0, echo:0, hist:[0,0,0,0,0,0,0,0,0,0,0,0,0],
+             rSum:0, rN:0, rHist:new Uint16Array(RB_N) };
   });
 
   /* One pixel per 2 km cell made every stray dot — a glyph, a label edge, one
@@ -928,7 +953,7 @@ function reproject(px32, iw, ih, cal) {
       for (b = 12; b >= 1; b--) if (bc[b] >= 2) { cb = b; break; }
       if (!cb) for (b = 12; b >= 1; b--) if (bc[b]) { cb = b; break; }
       t.hist[cb]++;
-      if (rN) { t.rSum += rSum / rN; t.rN++; }
+      if (rN) { var cellR = rSum / rN; t.rSum += cellR; t.rN++; t.rHist[rateBin(cellR)]++; }
     }
   }
 
@@ -2458,7 +2483,7 @@ function crossPairs() {
     if (!bestL || !bestR) return;
     var st = districtStep(bestL);
     if (st < 2 || st > 10) return;              /* skip the noisy ends */
-    var mm = bestR.rSum / bestR.rN;
+    var mm = districtRate(bestR);
     if (!(mm > 0.05)) return;
     out.push({ g:Math.round(mm * 100) / 100, d:stepDbz(st), n:D.name });
   });
@@ -2468,9 +2493,37 @@ function crossPairs() {
 function zrPairs() { return store.get("zrPairs", []); }
 function setZrPairs(v) { store.set("zrPairs", v); }
 
+function fitLine(P) {
+  var n = P.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  P.forEach(function (p) {
+    var x = Math.log(p.g) / Math.LN10, y = p.d / 10;
+    sx += x; sy += y; sxx += x * x; sxy += x * y;
+  });
+  var den = n * sxx - sx * sx;
+  if (Math.abs(den) < 1e-9) return null;
+  var b = (n * sxy - sx * sy) / den;
+  return { b:b, la:(sy - b * sx) / n };
+}
+
 function fitZR() {
   var P = zrPairs().filter(function (p) { return p.g > 0 && p.d > 0; });
   if (P.length < 3) return null;
+  /* One district where the two apps simply disagree — different radar, a few
+     minutes apart — can swing a small sample completely. Fit once, drop the
+     worst residuals, fit again. */
+  if (P.length >= 8) {
+    var f0 = fitLine(P);
+    if (f0) {
+      var res = P.map(function (p) {
+        var x = Math.log(p.g) / Math.LN10;
+        return Math.abs(p.d / 10 - (f0.la + f0.b * x));
+      });
+      var sorted = res.slice().sort(function (a, b) { return a - b; });
+      var cut = sorted[Math.floor(sorted.length * 0.8)];
+      var keep = P.filter(function (p, i) { return res[i] <= cut; });
+      if (keep.length >= Math.max(3, P.length * 0.6)) P = keep;
+    }
+  }
   var n = P.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
   P.forEach(function (p) {
     var x = Math.log(p.g) / Math.LN10, y = p.d / 10;   /* y = log10(Z) */
@@ -2488,7 +2541,12 @@ function fitZR() {
     var f = la + b * x;
     ssTot += (y - mean) * (y - mean); ssRes += (y - f) * (y - f);
   });
-  return { a:Math.pow(10, la), b:b, n:n, r2:(ssTot > 0 ? 1 - ssRes / ssTot : 1) };
+  var r2 = (ssTot > 0 ? 1 - ssRes / ssTot : 1);
+  /* A fit is only usable if the two sources actually agree AND the slope is
+     physically sensible. Published Z-R exponents sit between about 1.0 and 2.0;
+     anything outside that means the scatter, not the rain, set the slope. */
+  var ok = r2 >= 0.5 && b >= 0.8 && b <= 2.2;
+  return { a:Math.pow(10, la), b:b, n:n, r2:r2, ok:ok };
 }
 
 function paintZR() {
@@ -2532,10 +2590,14 @@ function paintZR() {
     h.appendChild(d);
   });
   var f = fitZR(), t = document.getElementById("zrFit");
-  t.textContent = f
-    ? "n=" + f.n + "   a=" + f.a.toFixed(0) + "   b=" + f.b.toFixed(2) + "   R\u00b2=" + f.r2.toFixed(3)
-    : T("zrNeed");
-  document.getElementById("zrDoFit").disabled = !f;
+  if (!f) {
+    t.textContent = T("zrNeed"); t.style.color = "var(--dim)";
+  } else {
+    t.textContent = "n=" + f.n + "   a=" + f.a.toFixed(0) + "   b=" + f.b.toFixed(2)
+      + "   R\u00b2=" + f.r2.toFixed(3) + (f.ok ? "" : "   \u2014 " + T("zrBadFit"));
+    t.style.color = f.ok ? "var(--dim)" : "var(--red)";
+  }
+  document.getElementById("zrDoFit").disabled = !(f && f.ok);
 }
 
 /* ══ wiring ══ */
@@ -2589,7 +2651,7 @@ document.getElementById("zrAdd").onclick = function () {
 };
 document.getElementById("zrDoFit").onclick = function () {
   var f = fitZR();
-  if (!f) { toast("\u00d7"); return; }
+  if (!f || !f.ok) { toast("\u00d7"); return; }
   ZR.a = f.a; ZR.b = f.b; saveZR(); paintZR(); render();
   toast(T("zrFitted") + " R\u00b2=" + f.r2.toFixed(2));
 };

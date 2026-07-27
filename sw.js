@@ -1,6 +1,6 @@
 /* 雨情通报 RainBulletin MY — service worker
    Keep CACHE_VERSION in step with the constant in index.html. */
-var CACHE_VERSION = "rbmy-v3.5.0-20260727";
+var CACHE_VERSION = "rbmy-v3.5.1-20260727";
 var SHELL = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", function (e) {
