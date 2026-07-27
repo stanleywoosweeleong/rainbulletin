@@ -283,7 +283,7 @@ dialog#cal{width:min(940px,96vw)}
    Rain: pasted Rain Alarm Pro / Windy radar screenshots only — no network
    ══════════════════════════════════════════════════════════════════ */
 var NS            = "rainbulletin-my";
-var CACHE_VERSION = "rbmy-v3.4.0-20260727";
+var CACHE_VERSION = "rbmy-v3.5.0-20260727";
 var SEED_VERSION  = 3;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -774,10 +774,12 @@ function detectPalette(ctx, iw, ih) {
      whole image its rates. */
   var band = mapBand(ctx, iw, ih);
   var by0 = Math.round(band.y0 * f), by1 = Math.round(band.y1 * f);
+  var bx0 = Math.round((band.x0 || 0) * f);
+  var bx1 = Math.round((band.x1 != null ? band.x1 : iw) * f);
   var d = x.getImageData(0, 0, w, h).data, echo = [];
   for (var i = 0; i < d.length; i += 4) {
-    var py = ((i / 4) / w) | 0;
-    if (py < by0 || py >= by1) continue;
+    var pi = (i / 4) | 0, py = (pi / w) | 0, px2 = pi % w;
+    if (py < by0 || py >= by1 || px2 < bx0 || px2 >= bx1) continue;
     var r = d[i], g = d[i+1], b = d[i+2];
     if (BASEMAP && BASEMAP[colourBin(r, g, b)]) continue;
     var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
@@ -1190,27 +1192,54 @@ function coastWorld(max, region) {
 
 /* Keep the longest run of rows near the image's median brightness — app
    toolbars and timelines sit far below it and would otherwise dominate. */
+/* Crop app chrome on BOTH axes. Cropping only rows was enough for a phone,
+   where toolbars sit top and bottom — but a desktop capture puts a tall
+   forecast panel down one side, and a third of the frame of white cards
+   swamps the coastline in every direction. Same test each way: keep the
+   longest run of lines whose low-saturation mean brightness is near the
+   image median, and only trust it if the run is a decent share of the axis. */
+function longestRun(means, n, lim, minFrac) {
+  var bs = 0, bl = 0, cs = -1, i;
+  for (i = 0; i < n; i++) {
+    if (means[i] > lim) { if (cs < 0) cs = i; }
+    else { if (cs >= 0 && i - cs > bl) { bl = i - cs; bs = cs; } cs = -1; }
+  }
+  if (cs >= 0 && n - cs > bl) { bl = n - cs; bs = cs; }
+  return bl > n * minFrac ? [bs, bs + bl] : [0, n];
+}
+
 function mapBand(ctx, w, h) {
-  var d = ctx.getImageData(0, 0, w, h).data, means = new Float32Array(h), list = [];
-  for (var y = 0; y < h; y++) {
-    var s = 0, n = 0;
-    for (var q = 0; q < w; q += 4) {
+  var d = ctx.getImageData(0, 0, w, h).data;
+  var rowS = new Float32Array(h), rowN = new Float32Array(h);
+  var colS = new Float32Array(w), colN = new Float32Array(w);
+  var list = [];
+  for (var y = 0; y < h; y += 2) {
+    for (var q = 0; q < w; q += 2) {
       var o = (y * w + q) * 4, r = d[o], g = d[o+1], b = d[o+2];
       var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-      if (mx && (mx - mn) / mx < 0.15) { s += r*0.299 + g*0.587 + b*0.114; n++; }
+      if (!mx || (mx - mn) / mx >= 0.15) continue;
+      var L = r * 0.299 + g * 0.587 + b * 0.114;
+      rowS[y] += L; rowN[y]++;
+      colS[q] += L; colN[q]++;
+      list.push(L);
     }
-    means[y] = n ? s / n : 0;
-    if (means[y] > 0) list.push(means[y]);
   }
   list.sort(function (a, b) { return a - b; });
-  var lim = (list[list.length >> 1] || 128) * 0.75;
-  var bs = 0, bl = 0, cs = -1;
-  for (var y2 = 0; y2 < h; y2++) {
-    if (means[y2] > lim) { if (cs < 0) cs = y2; }
-    else { if (cs >= 0 && y2 - cs > bl) { bl = y2 - cs; bs = cs; } cs = -1; }
-  }
-  if (cs >= 0 && h - cs > bl) { bl = h - cs; bs = cs; }
-  return bl > h * 0.3 ? { y0:bs, y1:bs + bl } : { y0:0, y1:h };
+  var med = list[list.length >> 1] || 128;
+
+  var rm = new Float32Array(h);
+  for (var y2 = 0; y2 < h; y2++) rm[y2] = rowN[y2] ? rowS[y2] / rowN[y2] : (y2 > 0 ? rm[y2-1] : 0);
+  var cm = new Float32Array(w);
+  for (var x2 = 0; x2 < w; x2++) cm[x2] = colN[x2] ? colS[x2] / colN[x2] : (x2 > 0 ? cm[x2-1] : 0);
+
+  /* A side panel is usually much brighter than a map, so bound both ways */
+  var lo = med * 0.75, hi = med * 1.45;
+  for (var k = 0; k < w; k++) if (cm[k] > hi) cm[k] = 0;
+  for (var k2 = 0; k2 < h; k2++) if (rm[k2] > hi) rm[k2] = 0;
+
+  var ry = longestRun(rm, h, lo, 0.30);
+  var rx = longestRun(cm, w, lo, 0.35);
+  return { y0:ry[0], y1:ry[1], x0:rx[0], x1:rx[1] };
 }
 
 function edgeMap(ctx, iw, ih) {
@@ -1240,12 +1269,14 @@ function edgeMap(ctx, iw, ih) {
   }
 
   var y0 = Math.round(band.y0 * f), y1 = Math.round(band.y1 * f);
+  var x0b = Math.round((band.x0 || 0) * f);
+  var x1b = Math.round((band.x1 != null ? band.x1 : iw) * f);
   var mag = new Float32Array(w * h), vals = [];
   function chan(o, k) { return d[o * 4 + k]; }
   for (var y2 = Math.max(1, y0 + 1); y2 < Math.min(h - 1, y1 - 1); y2++)
     for (var q2 = 1; q2 < w - 1; q2++) {
       var o = y2 * w + q2;
-      if (grow[o]) continue;
+      if (grow[o] || q2 < x0b || q2 >= x1b) continue;
       var m = 0;
       for (var k = 0; k < 3; k++) {
         var gx = Math.abs(chan(o-1, k) - chan(o+1, k));
@@ -1264,7 +1295,8 @@ function edgeMap(ctx, iw, ih) {
   var lum2 = new Float32Array(w * h);
   for (var k3 = 0; k3 < w * h; k3++) {
     var yy2 = (k3 / w) | 0;
-    if (grow[k3] || yy2 <= y0 || yy2 >= y1) { lum2[k3] = -1; continue; }
+    var xx2 = k3 % w;
+    if (grow[k3] || yy2 <= y0 || yy2 >= y1 || xx2 < x0b || xx2 >= x1b) { lum2[k3] = -1; continue; }
     var o3 = k3 * 4;
     lum2[k3] = d[o3] * 0.299 + d[o3+1] * 0.587 + d[o3+2] * 0.114;
   }
