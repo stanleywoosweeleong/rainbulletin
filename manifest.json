@@ -1,7 +1,7 @@
 {
-  "name": "雨情通报 RainBulletin",
-  "short_name": "雨情通报",
-  "description": "收藏点 · 降雨县属着色通报 / Favourite-location rainfall watch for Malaysia",
+  "name": "雨情 RainBulletin",
+  "short_name": "雨情",
+  "description": "降雨县属着色 / Rainfall by district for Malaysia",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,6 +10,28 @@
   "theme_color": "#0f1020",
   "lang": "zh-Hans",
   "icons": [
-    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
-  ]
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "images",
+          "accept": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      ]
+    }
+  }
 }

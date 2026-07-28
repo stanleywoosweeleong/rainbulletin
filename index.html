@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1020">
 <link rel="manifest" href="./manifest.json">
-<title>雨情通报 · RainBulletin</title>
+<title>雨情 · RainBulletin</title>
 <style>
 /* ── tokens ─────────────────────────────────────────────
    ink      #101014   bulletin text / hairlines
@@ -17,7 +17,7 @@
    ───────────────────────────────────────────────────── */
 :root{
   --ink:#101014; --paper:#fff; --jmm:#2323c8; --slate:#0f1020; --steel:#191c30;
-  --line:#2b3050; --amber:#f0a92c; --red:#d9433f; --dim:#8b91b4; --text:#e8eaf6;
+  --line:#2b3050; --amber:#f0a92c; --red:#d9433f; --dim:#a6acce; --text:#f2f4ff;
   --r0:#c9d2f5; --r1:#8e9deb; --r2:#5061dc; --r3:#2323c8; --r4:#14148c;
   --sans:"Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
@@ -27,6 +27,7 @@ html,body{margin:0;padding:0}
 body{
   background:var(--slate); color:var(--text); font-family:var(--sans);
   font-size:15px; line-height:1.5; padding-bottom:env(safe-area-inset-bottom);
+  font-weight:450; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   overflow-x:hidden;
 }
 .wrap{max-width:1120px;margin:0 auto;padding:14px 12px 48px}
@@ -39,30 +40,52 @@ body{
   margin:0;color:var(--text)
 }
 .mast .zh{letter-spacing:.24em;font-weight:700}
-.mast .sub{display:block;margin-top:5px;font-family:var(--mono);font-size:11px;
-  color:var(--dim);letter-spacing:.06em}
+.mast .sub{display:block;margin-top:5px;font-family:var(--mono);font-size:12px;
+  font-weight:500;color:var(--dim);letter-spacing:.05em}
 .spacer{flex:1}
 .langbtn{
-  font-family:var(--mono);font-size:11px;letter-spacing:.08em;background:none;color:var(--dim);
-  border:1px solid var(--line);border-radius:2px;padding:4px 9px;cursor:pointer
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.08em;
+  background:var(--steel);color:var(--text);
+  border:1px solid var(--line);border-radius:4px;padding:6px 12px;cursor:pointer
 }
-.langbtn:hover{color:var(--text);border-color:#3d4470}
+.langbtn:hover{border-color:#3d4470}
+@media(max-width:640px){
+  /* a 44px target, and legible at arm's length in daylight */
+  .langbtn{font-size:15px;padding:9px 15px;min-height:44px;border-radius:6px}
+}
 
 /* ── bulletin card (the signature) ── */
 .card{background:var(--paper);border-radius:3px;overflow:hidden;box-shadow:0 1px 0 #000,0 10px 34px -14px #000}
 #bulletin{display:block;width:100%;height:auto;touch-action:manipulation}
 #bulletin text{font-family:var(--sans)}
 
+/* ── map probe: which district is under the finger ── */
+/* --ink is the near-black used on the white bulletin card; this strip sits on
+   the dark page, so it needs --text or the district name is black on black. */
+.probe{margin:8px 0 0;padding:8px 11px;min-height:36px;font-size:13.5px;font-weight:500;
+  color:var(--dim);font-family:var(--mono);letter-spacing:.02em;background:var(--steel);
+  border:1px solid var(--line);border-radius:3px;display:flex;align-items:center;gap:2px}
+.probe b{color:var(--text);font-family:var(--sans);font-weight:700;letter-spacing:0}
+.probe .st{color:var(--dim)}
+.probe .rn{color:#8ea2ff;font-weight:700}
+@media(max-width:520px){ .probe{font-size:12px} }
+
 /* ── toolbar ── */
-.bar{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0 18px}
+/* Desktop keeps one flowing row; the phone gets a keypad — three rows of three
+   equal tiles, thumb-sized, so nothing reflows unpredictably as labels change
+   length between Chinese and English. */
+.bar{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0 18px;align-items:center}
+.brow{display:contents}
 button.tool{
-  font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
+  font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.05em;
   background:var(--steel);color:var(--text);border:1px solid var(--line);
   border-radius:2px;padding:8px 12px;cursor:pointer
 }
 button.tool:hover{border-color:#454d80}
 button.tool[aria-pressed="true"]{background:var(--jmm);border-color:var(--jmm);color:#fff}
 button.tool.go{background:var(--jmm);border-color:var(--jmm);color:#fff;font-weight:600}
+button.tool.wa{background:#128c7e;border-color:#128c7e;color:#fff;font-weight:600}
+button.tool.wa:hover{border-color:#1aa08f}
 button.tool:disabled{opacity:.4;cursor:default}
 button.tool:focus-visible,.langbtn:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
@@ -75,9 +98,18 @@ h2.sec{
 .state{margin-bottom:16px}
 .state>h3{
   font-size:12.5px;font-weight:700;letter-spacing:.06em;margin:0 0 6px;color:#fff;
-  display:flex;align-items:center;gap:8px
+  display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+  padding:5px 0
 }
-.state>h3 em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.05em}
+.state>h3 .caret{
+  display:inline-block;font-family:var(--mono);color:var(--dim);
+  transition:transform .12s ease;transform:rotate(0deg);width:9px
+}
+.state.open>h3 .caret{transform:rotate(90deg)}
+.state .grows{display:none}
+.state.open .grows{display:block}
+.state>h3 em{font-style:normal;font-family:var(--mono);font-size:11px;font-weight:600;
+  color:var(--dim);letter-spacing:.05em}
 .row{
   display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;
   padding:8px 10px;border:1px solid var(--line);border-radius:2px;background:var(--steel);
@@ -87,14 +119,25 @@ h2.sec{
 .chip{width:14px;height:14px;border-radius:3px;background:#2a2f4a;border:1px solid #0a0c18}
 .nm{min-width:0}
 .nm b{font-weight:600;font-size:14px;display:block;line-height:1.25}
-.nm span{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.03em}
+.nm span{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.02em}
 .mm{font-family:var(--mono);font-size:13px;font-weight:600;text-align:right;white-space:nowrap}
-.mm small{display:block;font-size:9.5px;font-weight:400;color:var(--dim);letter-spacing:.05em}
+.mm small{display:block;font-size:11px;font-weight:500;color:var(--dim);letter-spacing:.04em}
 .tag{
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:3px 6px;border-radius:2px;
+  font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.05em;
+  padding:4px 8px;border-radius:3px;
   border:1px solid var(--line);color:var(--dim);white-space:nowrap
 }
 .tag.rain{background:var(--jmm);border-color:var(--jmm);color:#fff}
+.star{background:none;border:0;cursor:pointer;font-size:15px;line-height:1;padding:0 6px 0 0;
+  color:#4a4f70;filter:grayscale(1) opacity(.5)}
+.star.on{filter:none}
+.binhead{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--dim);
+  margin:0 0 6px;text-transform:uppercase}
+#fBin .li span{color:var(--dim)}
+.state.starred h3{color:#f5c23a}
+.state.starred{border-left:2px solid #f5c23a;padding-left:9px;margin-left:-11px}
+.li .nmstar{color:#e0a02a;margin-right:5px}
+.row.near .tag{color:#8ea2ff;background:#171b30;border-color:#2a2f4a}
 .tag.storm{background:var(--amber);border-color:var(--amber);color:#1a1200;font-weight:700}
 .empty{
   border:1px dashed var(--line);border-radius:2px;padding:22px 16px;text-align:center;
@@ -110,24 +153,68 @@ dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
 .dlg{padding:16px}
 .dlg h3{margin:0 0 12px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--mono);color:var(--dim);font-weight:500}
 .fld{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:center;margin-bottom:8px}
-.fld label{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.06em}
-input,textarea{
+.fld label{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);letter-spacing:.06em}
+input,textarea,select{
   width:100%;background:#0d0f1c;border:1px solid var(--line);color:var(--text);
   border-radius:2px;padding:7px 9px;font-family:var(--mono);font-size:12.5px
 }
+
+/* Radar-source picker: the native dropdown as collapsible tiles that expand
+   inline. The amber 已载入 badge replaces the bare white dot that used to mark
+   a source whose palette is attached to a currently pasted image. */
+.srcpick{width:100%}
+button.srchead{
+  width:100%;display:flex;align-items:center;gap:8px;
+  background:#0d0f1c;border:1px solid var(--line);color:var(--text);
+  border-radius:2px;padding:8px 9px;font-family:var(--mono);font-size:12.5px;
+  cursor:pointer;text-align:left
+}
+button.srchead:hover{border-color:#454d80}
+button.srchead .caret{margin-left:auto;color:var(--dim);transition:transform .12s ease}
+button.srchead[aria-expanded="true"] .caret{transform:rotate(90deg)}
+.srctiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:6px}
+.srctiles[hidden]{display:none}
+button.srctile{
+  background:var(--steel);border:1px solid var(--line);color:var(--text);
+  border-radius:4px;padding:8px 7px;font-family:var(--mono);font-size:12px;
+  cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:40px
+}
+button.srctile:hover{border-color:#454d80}
+button.srctile[aria-pressed="true"]{background:var(--jmm);border-color:var(--jmm);color:#fff}
+.srcpick .on{font-size:10.5px;color:var(--amber);letter-spacing:.04em}
+/* iOS zooms the page whenever a focused field is under 16px. Nothing else
+   stops it — not viewport flags, not user-scalable. Meet the threshold. */
+@media(max-width:640px){
+  input,textarea,select{font-size:16px;padding:9px 10px}
+}
 textarea{min-height:150px;line-height:1.45;resize:vertical}
-.hint{font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.6;margin:8px 0 0}
+.hint{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);
+  line-height:1.6;margin:8px 0 0}
 .list{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:2px;margin-top:10px}
-.li{display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid #232744;font-size:13px}
+.li{display:flex;align-items:center;gap:8px;padding:8px 9px;border-bottom:1px solid #232744;font-size:13.5px}
 .li:last-child{border-bottom:0}
 .li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.li code{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.li code{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .x{background:none;border:0;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
 .foot{display:flex;gap:7px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
 .drop{border:1px dashed var(--line);border-radius:2px;padding:30px 14px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
 .drop.over{border-color:var(--jmm);color:var(--text);background:#141833}
+/* touch-action:none meant a finger anywhere on the preview was captured, so a
+   tall phone screenshot became a scroll trap. pan-y lets a vertical drag scroll
+   the dialog while a tap still places an anchor, and the rails either side give
+   a guaranteed place to swipe. */
+.cvwrap{position:relative;margin-bottom:10px}
 #calCv{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:2px;
-  touch-action:none;cursor:crosshair;background:#0d0f1c;margin-bottom:10px}
+  touch-action:pan-y;cursor:crosshair;background:#0d0f1c}
+/* Invisible rails laid OVER the map rather than insetting it — the preview
+   keeps the full width, and a thumb landing near either edge scrolls the
+   dialog instead of dropping an anchor. */
+.rail{display:none}
+@media(max-width:640px){
+  .rail{display:block;position:absolute;top:0;bottom:0;width:14%;
+    touch-action:pan-y;background:transparent;z-index:3}
+  .rail.l{left:0} .rail.r{right:0}
+}
 .loupe{position:fixed;width:132px;height:132px;border-radius:50%;overflow:hidden;
   border:2px solid #fff;box-shadow:0 8px 26px -8px #000;pointer-events:none;display:none;z-index:200}
 .loupe canvas{display:block;width:132px;height:132px}
@@ -141,11 +228,37 @@ dialog#cal{width:min(940px,96vw)}
   transition:opacity .18s
 }
 .toast.show{opacity:1}
+@media(max-width:640px){
+  /* Only the main toolbar becomes a keypad. The little option bars inside the
+     dialogs — sensitivity, Z-R presets, timestamp — are a different thing and
+     were inheriting full-width 62px tiles, which stacked them into a column. */
+  .bar.keypad{display:block;margin:11px 0 16px}
+  .brow{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:7px}
+  .brow .spacer{display:none}
+  .brow.wa2{grid-template-columns:repeat(2,1fr)}
+  .fld .bar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+  .fld .bar button.tool{
+    width:100%;height:auto;min-height:40px;padding:8px 4px;font-size:12px;
+    line-height:1.2;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;text-align:center
+  }
+  /* ~116 x 62 at 380px, ~133 x 62 at 430px — close to a Nokia keypad key and
+     a comfortable thumb target either way. Every tile the same: "Sabah &
+     Sarawak" wraps to two lines and used to make its whole row taller. */
+  .bar.keypad button.tool{
+    width:100%;height:62px;padding:6px 5px;font-size:12.5px;line-height:1.25;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    border-radius:6px;overflow:hidden
+  }
+}
 @media(max-width:520px){
   .wrap{padding:12px 9px 40px}
+  .nm span{font-size:12px}
+  .tag{font-size:11.5px}
+  .hint{font-size:12px}
   .mast h1{font-size:15px}
   .mast h1.zh{letter-spacing:.16em}
-  .mast .sub{font-size:10.5px;letter-spacing:.04em}
+  .mast .sub{font-size:11.5px;letter-spacing:.04em}
   .row{grid-template-columns:12px 1fr auto;gap:8px}
   .fld{grid-template-columns:1fr}
 }
@@ -156,26 +269,38 @@ dialog#cal{width:min(940px,96vw)}
 
   <div class="mast">
     <div class="mastrow">
-      <h1 class="zh" data-i="brandZh">雨情通报</h1>
-      <h1 data-i="brandEn">RAINBULLETIN</h1>
+      <h1 class="zh" data-i="brandZh">雨情</h1>
+      <h1 class="en" data-i="brandEn" hidden>RAINBULLETIN</h1>
       <span class="spacer"></span>
       <button class="langbtn" id="lang">EN</button>
     </div>
-    <span class="sub" data-i="tagline">收藏点 · 降雨县属着色</span>
+    <span class="sub" data-i="tagline">降雨县属着色</span>
   </div>
 
   <div class="card"><svg id="bulletin" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div class="probe" id="probe" aria-live="polite"><span data-i="probeHint">指向或点触地图，查看县属</span></div>
 
-  <div class="bar">
-    <button class="tool" id="vAll"  aria-pressed="true"  data-i="vAll">全国</button>
-    <button class="tool" id="vPen"  aria-pressed="false" data-i="vPen">半岛</button>
-    <button class="tool" id="vBor"  aria-pressed="false" data-i="vBor">东马</button>
-    <span class="spacer"></span>
-    <button class="tool" id="copy" data-i="btnCopy">复制文字</button>
-    <button class="tool" id="png"  data-i="btnPng">存图 PNG</button>
-    <button class="tool" id="paste" data-i="btnPaste">贴图雷达</button>
-    <button class="tool" id="edit" data-i="btnEdit">收藏点</button>
-    <button class="tool" id="zrBtn" data-i="btnZR">校准</button>
+  <div class="bar keypad">
+    <div class="brow view">
+      <button class="tool" id="vAll"  aria-pressed="true"  data-i="vAll">全国</button>
+      <button class="tool" id="vPen"  aria-pressed="false" data-i="vPen">半岛</button>
+      <button class="tool" id="vBor"  aria-pressed="false" data-i="vBor">东马</button>
+      <span class="spacer"></span>
+    </div>
+    <div class="brow">
+      <button class="tool" id="copy" data-i="btnCopy">复制文字</button>
+      <button class="tool" id="png"  data-i="btnPng">存图 PNG</button>
+      <button class="tool" id="zrBtn" data-i="btnZR">校准</button>
+    </div>
+    <div class="brow">
+      <button class="tool" id="paste" data-i="btnPaste">贴图雷达</button>
+      <button class="tool" id="pins" data-i="btnPins">显示点</button>
+      <button class="tool" id="edit" data-i="btnEdit">收藏点</button>
+    </div>
+    <div class="brow wa2">
+      <button class="tool wa" id="wa1" data-i="btnWa1">WA 通报</button>
+      <button class="tool wa" id="wa2" data-i="btnWa2">WA 明细</button>
+    </div>
   </div>
 
   <h2 class="sec" data-i="secRoster">收藏点明细</h2>
@@ -183,14 +308,26 @@ dialog#cal{width:min(940px,96vw)}
 
   <h2 class="sec" data-i="secSource">数据来源</h2>
   <p class="hint" id="sourceNote"></p>
+  <p class="hint" id="buildNote"></p>
 </div>
 
 <dialog id="dlg"><div class="dlg">
   <h3 data-i="dlgTitle">收藏点管理</h3>
-  <div class="fld"><label data-i="fName">名称</label><input id="fName" placeholder="順豪生态榴莲园"></div>
-  <div class="fld"><label data-i="fLat">纬度 Lat</label><input id="fLat" inputmode="decimal" placeholder="3.2167"></div>
-  <div class="fld"><label data-i="fLon">经度 Lon</label><input id="fLon" inputmode="decimal" placeholder="102.4167"></div>
-  <div class="foot"><button class="tool go" id="fAdd" data-i="btnAdd">加入</button></div>
+  <div class="fld"><label data-i="fName">名称</label><input id="fName"></div>
+  <div class="fld"><label data-i="fLat">纬度 Lat</label><input id="fLat" inputmode="decimal"></div>
+  <div class="fld"><label data-i="fLon">经度 Lon</label><input id="fLon" inputmode="decimal"></div>
+  <div class="foot">
+    <button class="tool" id="fHere" data-i="btnHere">用当前位置</button>
+    <button class="tool go" id="fAdd" data-i="btnAdd">加入</button>
+  </div>
+  <div id="fBinWrap" hidden style="margin-top:14px">
+    <h3 class="binhead" id="fBinHead"></h3>
+    <div class="list" id="fBin"></div>
+    <div class="foot"><button class="tool" id="fPurge" data-i="btnPurge">彻底清除</button></div>
+  </div>
+  <div class="fld" style="margin-top:14px"><label data-i="fFind">查找</label>
+    <input id="fFind" placeholder="Sg. Ruan / 劳勿 / Raub" spellcheck="false"></div>
+  <p class="hint" id="fCount"></p>
   <div class="list" id="fList"></div>
   <p class="hint" data-i="ioHint">批量：每行一个 <code>名称, 纬度, 经度</code></p>
   <textarea id="io" spellcheck="false"></textarea>
@@ -207,6 +344,11 @@ dialog#cal{width:min(940px,96vw)}
     <span data-i="dlgZR" style="flex:1">雨量校准 · Z–R</span>
     <button class="x" id="zrX" aria-label="close" style="font-size:20px">×</button>
   </h3>
+  <div class="fld"><label data-i="zrSrc">雷达来源</label>
+    <div class="srcpick">
+      <button type="button" class="srchead" id="zrHead" aria-expanded="false"></button>
+      <div class="srctiles" id="zrTiles" hidden></div>
+    </div></div>
   <p class="hint" id="zrNow"></p>
   <div class="fld"><label data-i="zrPreset">预设</label>
     <div class="bar" id="zrPresets" style="margin:0"></div></div>
@@ -248,10 +390,13 @@ dialog#cal{width:min(940px,96vw)}
     <span data-i="calDrop">粘贴截图（⌘V / Ctrl-V）、拖入，或选择图片</span><br>
     <span class="hint" id="dropHint" style="display:block;margin-top:4px"></span>
     <button class="tool" id="calPick" data-i="calPick" style="margin-top:10px">选图片</button>
-    <input type="file" id="calFile" accept="image/*" multiple hidden>
+    <input type="file" id="calFile"
+           accept="image/png,image/jpeg,image/webp" multiple hidden>
   </div>
   <div id="calWork" hidden>
-    <canvas id="calCv"></canvas>
+    <div class="cvwrap"><canvas id="calCv"></canvas>
+      <div class="rail l" aria-hidden="true"></div>
+      <div class="rail r" aria-hidden="true"></div></div>
     <div id="calManualBox" hidden>
       <div class="fld"><label data-i="calAnchors">定位点</label><select id="calSel"></select></div>
       <p class="hint" data-i="calTap">在截图上点击地标位置，至少两个</p>
@@ -259,7 +404,7 @@ dialog#cal{width:min(940px,96vw)}
     </div>
     <p class="hint" id="calFitTxt"></p>
     <div class="fld"><label data-i="calTime">图内时间</label>
-      <input id="calTimeIn" placeholder="12:59" spellcheck="false"></div>
+      <div class="bar" id="calTimeBar" style="margin:0"></div></div>
     <div class="foot">
       <button class="tool" id="calCoast" aria-pressed="false" data-i="calCoast">叠示海岸线校对</button>
       <button class="tool" id="calManual" aria-pressed="false" data-i="manual">手动点选</button>
@@ -278,13 +423,13 @@ dialog#cal{width:min(940px,96vw)}
 <script>
 "use strict";
 /* ══════════════════════════════════════════════════════════════════
-   雨情通报 RainBulletin — single-file offline-first PWA
+   雨情 RainBulletin — single-file offline-first PWA
    Districts: 160 × Malaysia ADM2, TopoJSON quantised in-file (no CDN)
    Rain: pasted Rain Alarm Pro / Windy radar screenshots only — no network
    ══════════════════════════════════════════════════════════════════ */
 var NS            = "rainbulletin-my";
-var CACHE_VERSION = "rbmy-v3.5.1-20260727";
-var SEED_VERSION  = 3;
+var CACHE_VERSION = "rbmy-v4.20.2-20260728";
+var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
 /* ── storage: real localStorage on GitHub Pages, memory in sandboxes ── */
@@ -301,35 +446,136 @@ var store = {
 };
 
 /* ── seed favourites: real town coordinates, all user-editable ── */
+/* Seed set imported from RainScore Lab — the farms Stanley already tracks,
+   with their owner names and working groups. 114 points, so the map pins
+   are toggleable; a wall of dots is worse than none. */
 var SEED = [
-  ["直凉 Triang",            3.2167, 102.4167],
-  ["劳勿 Raub",              3.7936, 101.8571],
-  ["文冬 Bentong",           3.5222, 101.9089],
-  ["淡马鲁 Temerloh",        3.4506, 102.4189],
-  ["而连突 Jerantut",        3.9364, 102.3625],
-  ["关丹 Kuantan",           3.8077, 103.3260],
-  ["金马仑 Tanah Rata",      4.4708, 101.3792],
-  ["太平 Taiping",           4.8500, 100.7333],
-  ["加影 Kajang",            2.9930, 101.7880],
-  ["麻坡 Muar",              2.0442, 102.5689],
-  ["居銮 Kluang",            2.0250, 103.3167],
-  ["峇株巴辖 Batu Pahat",    1.8548, 102.9325],
-  ["亚罗士打 Alor Setar",    6.1248, 100.3678],
-  ["斗湖 Tawau",             4.2448, 117.8912],
-  ["古晋 Kuching",           1.5533, 110.3592]
+  ["Sg. Ruan - Fang Goo 双溪兰 - 晓方", 3.77883, 101.94133, "Raub 劳勿"],
+  ["Sg. Klau - Fang Goo 双溪吉流 - 晓方", 3.71967, 102.01033, "Raub 劳勿"],
+  ["Sg. Klau 1 - CT Tan 双溪吉流 1 - CT Tan", 3.717, 102.0055, "Raub 劳勿"],
+  ["Kg. Sg. Ruan - Neng 双溪兰 - 能", 3.79361, 101.93472, "Raub 劳勿"],
+  ["Kg. Sg. Ruan - Jerry Phoon 双溪兰新村 - Jerry", 3.79194, 101.94278, "Raub 劳勿"],
+  ["Sg. Klau - Kwong Seng 双溪吉流 - Kwong Seng", 3.74833, 101.95133, "Raub 劳勿"],
+  ["Sg. Klau 2 - CT Tan 双溪吉流 2 - CT Tan", 3.74417, 101.96917, "Raub 劳勿"],
+  ["Kg. Sg. Klau - Thompson 双溪吉流新村 - Thompso", 3.7475, 101.97694, "Raub 劳勿"],
+  ["Kg. Sg. Klau - Soon 双溪吉流新村 - 顺", 3.78392, 101.98063, "Raub 劳勿"],
+  ["Kampung Temau - Eric 甘榜德茂 - Eric", 3.929, 101.921, "Raub 劳勿"],
+  ["Ulu Gali 乌鲁加里", 3.84478, 101.95747, "Raub 劳勿"],
+  ["Kg. Gali 甘榜加里", 3.83333, 101.9, "Raub 劳勿"],
+  ["Jerkoh 日利谷", 4.04861, 101.92028, "Raub 劳勿"],
+  ["SJKC Cheroh 积罗国民型华文学校", 3.90293, 101.81499, "Raub 劳勿"],
+  ["Kampung Temau - MK 甘榜德茂 - MK", 3.917778, 101.919444, "Raub 劳勿"],
+  ["Dong - Hong 东区 - 鸿总", 4.090556, 101.966111, "Raub 劳勿"],
+  ["Ulu Gali - Jacky Kuan 乌鲁加里 - Jacky Kuan", 3.834694, 101.911833, "Raub 劳勿"],
+  ["Raub Batu Tiga - James Lye 劳勿三英里 - James", 3.79275, 101.903889, "Raub 劳勿"],
+  ["Ringlet 冷力", 4.41453, 101.38415, "Cameron 金马仑"],
+  ["Bertam Valley 伯坦谷", 4.397, 101.381, "Cameron 金马仑"],
+  ["Habu 哈布", 4.44011, 101.38921, "Cameron 金马仑"],
+  ["Tanah Rata 丹那拉打", 4.47135, 101.37565, "Cameron 金马仑"],
+  ["Brinchang 碧兰璋", 4.49223, 101.38732, "Cameron 金马仑"],
+  ["Kea Farm 吉亚农场", 4.50436, 101.40734, "Cameron 金马仑"],
+  ["Tringkap 丁甲", 4.51494, 101.42771, "Cameron 金马仑"],
+  ["Kampung Raja 甘榜拉惹", 4.56709, 101.40968, "Cameron 金马仑"],
+  ["Blue Valley 蓝谷", 4.58322, 101.41243, "Cameron 金马仑"],
+  ["Sungai Palas 双溪巴拉斯", 4.5225, 101.367, "Cameron 金马仑"],
+  ["Cameron Valley 金马伦谷", 4.4305, 101.401, "Cameron 金马仑"],
+  ["Boh Tea Plantation BOH 茶园", 4.52, 101.37, "Cameron 金马仑"],
+  ["Kuala Terla Tea Estate 吉拉烈茶园", 4.548, 101.42, "Cameron 金马仑"],
+  ["Kampung Taman Sedia 草莓农场", 4.458, 101.384, "Cameron 金马仑"],
+  ["MARDI Cameron Highlands MARDI 农业站", 4.4619, 101.3838, "Cameron 金马仑"],
+  ["Mantin Tmn Permai Jaya 文丁 中华华文小学", 2.81778, 101.8925, "NS9 森美兰"],
+  ["Mantin Andalas GIO GIO 文丁 湖滨花园", 2.82639, 101.88028, "NS9 森美兰"],
+  ["MANTIN DALAM 文丁达南", 2.806111, 101.8875, "NS9 森美兰"],
+  ["Spg. Durian (Kg. Mentaus) 1 新邦榴莲 Pitt-猫王", 3.12, 102.21972, "NS9 森美兰"],
+  ["Spg. Durian (Kg. Mentaus) 2 新邦榴莲 SAM", 3.11778, 102.21944, "NS9 森美兰"],
+  ["Titi 知知港", 2.8167, 102.0667, "NS9 森美兰"],
+  ["Labis - Austin 拉美士 - Austin", 2.42806, 103.03639, "Johor 柔佛"],
+  ["Segamat Buloh Kasap 昔加末 巫罗加什", 2.527677, 102.772178, "Johor 柔佛"],
+  ["Chaah Baru 三合港", 2.148561, 103.052319, "Johor 柔佛"],
+  ["Bekok 彼咯", 2.305833, 103.091389, "Johor 柔佛"],
+  ["Jementah 利民达", 2.433331, 102.683331, "Johor 柔佛"],
+  ["Tenang Hot Spring 丁能 热水池", 2.481236, 103.05805, "Johor 柔佛"],
+  ["Machap Baru 马接峇鲁", 2.38, 102.35056, "Melaka 马六甲"],
+  ["Durian Tunggal Dam 榴梿洞葛水坝", 2.3537, 102.3161, "Melaka 马六甲"],
+  ["Kg. Simpang Tebing Tinggi 德宾丁宜新村", 3.87467, 102.34467, "Jerantut 而连突"],
+  ["Damak 达玛", 3.949544, 102.214385, "Jerantut 而连突"],
+  ["Bukit Seladang 友联港神山", 3.91313, 102.35476, "Jerantut 而连突"],
+  ["Bentong Kuala Repas 文冬兵营", 3.55181, 101.8852, "Bentong 文冬"],
+  ["Bentong Happy Farm 农家乐", 3.53333, 101.88444, "Bentong 文冬"],
+  ["Bentong Valley Agro Park 文冬山寨谷小舍", 3.67438, 101.8655, "Bentong 文冬"],
+  ["Bentong Utara 文冬市北", 3.52816, 101.915014, "Bentong 文冬"],
+  ["Bentong Bukit D.O 文冬老虎山", 3.530986, 101.910808, "Bentong 文冬"],
+  ["Bentong Selatan 文冬市南", 3.516833, 101.897667, "Bentong 文冬"],
+  ["Waterway Villa 水道别墅", 3.44917, 101.90056, "Bentong 文冬"],
+  ["Kg. Benus 甘榜本努斯", 3.50783, 101.92667, "Bentong 文冬"],
+  ["Tras 都赖", 3.73622, 101.80792, "Bentong 文冬"],
+  ["Kampung Hulu Lebu 乌鲁乐布新村", 3.57278, 101.92611, "Bentong 文冬"],
+  ["Kampung Lebu 甘榜乐布", 3.616, 101.933, "Bentong 文冬"],
+  ["Sungai Ruan 双溪兰", 3.8542814, 101.9430543, "Bentong Team 团队"],
+  ["Bentong Kuala Repas 文冬兵营", 3.55181, 101.8852, "Bentong Team 团队"],
+  ["Bentong Happy Farm 农家乐", 3.53333, 101.88444, "Bentong Team 团队"],
+  ["Bentong Valley Agro Park 文冬山寨谷小舍", 3.67438, 101.8655, "Bentong Team 团队"],
+  ["Bentong Utara 文冬市北", 3.52816, 101.915014, "Bentong Team 团队"],
+  ["Bentong Bukit D.O 文冬老虎山", 3.530986, 101.910808, "Bentong Team 团队"],
+  ["Bentong Selatan 文冬市南", 3.516833, 101.897667, "Bentong Team 团队"],
+  ["Borneo Spring 婆罗青泉", 3.492, 102.024, "Karak 加叻"],
+  ["Kg. Sungai Dua 甘榜双溪都亚", 3.45972, 102.0, "Karak 加叻"],
+  ["Kg. Cinta Manis 甘甜新村", 3.453, 102.031, "Karak 加叻"],
+  ["Kg. Troh 德乐新村", 3.41194, 102.07889, "Karak 加叻"],
+  ["The Valley 加叻幽谷", 3.38389, 102.02778, "Karak 加叻"],
+  ["100% ORGANIC DURI RIN 山本绫有机农场", 3.45227, 101.99607, "Karak 加叻"],
+  ["Manchis 文积", 3.205, 102.164, "Manchis 文积"],
+  ["Kg. Ponson - Gan Ming Keong 彭顺村 - 颜明强", 3.229722, 102.156111, "Manchis 文积"],
+  ["Batu 36 三十六碑", 3.240556, 102.141111, "Manchis 文积"],
+  ["Chenderiang 积莪营", 4.256043, 101.227729, "Perak 霹雳"],
+  ["Sungkai 宋溪", 3.978889, 101.360278, "Perak 霹雳"],
+  ["Diamond Creeks 钻石溪", 3.7755, 101.52567, "Perak 霹雳"],
+  ["Tanjung Malim 丹绒马林", 3.71778, 101.55278, "Perak 霹雳"],
+  ["Kampung Belengu 甘榜柏伦古", 3.436161, 102.294602, "Pahang Central 彭亨中部"],
+  ["Kampung Ketam 甘榜吉胆", 3.54, 102.36778, "Pahang Central 彭亨中部"],
+  ["Kampung Gantok 甘榜甘督", 3.505847, 102.360318, "Pahang Central 彭亨中部"],
+  ["Jambu Rias BIGWOOD 占布里亚斯 大木", 3.467919, 102.094837, "Pahang Central 彭亨中部"],
+  ["Lojing 罗京高原", 4.7443608, 101.6416756, "Kelantan 吉兰丹"],
+  ["Kuala Krai 瓜拉吉赖", 5.456499, 102.3308, "Kelantan 吉兰丹"],
+  ["Gua Musang 话望生", 4.884279, 101.968178, "Kelantan 吉兰丹"],
+  ["Lubok Palaei 鲁柏巴莱", 2.430879, 111.947151, "Sabah/Sarawak 东马"],
+  ["Sibintek 西宾德", 2.33837, 112.08403, "Sabah/Sarawak 东马"],
+  ["Keningau 根地咬", 5.35528, 116.14472, "Sabah/Sarawak 东马"],
+  ["Kionsom 建山", 5.99417, 116.18222, "Sabah/Sarawak 东马"],
+  ["Mengkarak 明加叻", 3.32, 102.43, "Bera 百乐县"],
+  ["Kemasul 金马苏", 3.297, 102.395, "Bera 百乐县"],
+  ["Triang 直凉", 3.248, 102.417, "Bera 百乐县"],
+  ["Palm Glove 直凉园 金河山庄", 3.2305389, 102.3951267, "Bera 百乐县"],
+  ["Paya Lang 巴也郎", 3.18194, 102.43667, "Bera 百乐县"],
+  ["Simpang Bukit Mendi 明光", 3.165721, 102.386012, "Bera 百乐县"],
+  ["Bukit Mendi 武吉文迪", 3.17474, 102.350563, "Bera 百乐县"],
+  ["Kemayan Taman Maju Jaya 金马扬 1", 3.124265, 102.363199, "Bera 百乐县"],
+  ["Kemayan Taman Ixnora Jaya 金马扬 2", 3.141841, 102.363953, "Bera 百乐县"],
+  ["Sungai Rui 双溪锐", 3.09639, 102.35861, "Bera 百乐县"],
+  ["Lanchang (Durian) 联增", 3.42925, 102.13928, "Miketam 苏晓薇"],
+  ["Draha (Durian) 德拉哈", 3.40339, 102.283, "Miketam 苏晓薇"],
+  ["Jambu Rias 占布里亚斯", 3.39956, 102.14848, "Miketam 苏晓薇"],
+  ["Empresa 皇后园", 3.36379, 102.2608, "Miketam 苏晓薇"],
+  ["Mentakab 文德甲", 3.37169, 102.31093, "Miketam 苏晓薇"],
+  ["Mengkarak 明加叻", 3.32936, 102.31455, "Miketam 苏晓薇"],
+  ["Kuala Lipis 瓜拉立卑", 4.124748, 102.088034, "Miketam 苏晓薇"],
+  ["Kampung Chapu 甘榜查布", 5.1775, 102.895, "Desmond 陈联铕"],
+  ["Kuala Berang 瓜拉伯浪", 5.1725, 102.53333, "Desmond 陈联铕"],
+  ["Sungkai 宋溪", 3.978889, 101.360278, "Desmond 陈联铕"],
+  ["Tanjung Malim 丹绒马林", 3.71778, 101.55278, "Uncle Soon 順豪"],
+  ["Sungai Lembing 林明", 3.85, 103.03333, "Uncle Soon 順豪"]
 ];
 
 /* ── i18n ── */
 var I18N = {
   zh: {
-    brandZh:"雨情通报", brandEn:"RAINBULLETIN", tagline:"收藏点 · 降雨县属着色", vAll:"全国", vPen:"半岛", vBor:"东马",
+    brandZh:"雨情", brandEn:"RAINBULLETIN", tagline:"降雨县属着色", vAll:"全国", vPen:"半岛", vBor:"东马",
     btnCopy:"复制文字", btnPng:"存图 PNG", btnEdit:"收藏点",
     secRoster:"收藏点明细", secSource:"数据来源",
     dlgTitle:"收藏点管理", fName:"名称", fLat:"纬度 Lat", fLon:"经度 Lon",
     btnAdd:"加入", btnLoad:"从文本载入", btnDump:"导出到文本", btnReset:"还原示范", btnClose:"完成",
     ioHint:"批量：每行一个「名称, 纬度, 经度」",
-    bTitle:"雨情通报", bLegend:"正在下雨 / 有雨",
-    official:"官方警报以马来西亚气象局（MET Malaysia）为准",
+    bTitle:"雨情", bLegend:"正在下雨 / 有雨",
     bNone:"目前所有收藏点均无降雨。", stale:"数据已过期",
     noFav:"还没有收藏点。按「收藏点」加入你的园地。",
     unassigned:"未落入任何县属",
@@ -340,7 +586,19 @@ var I18N = {
     zrHint:"a \u00b7 b \u00b7 \u5c01\u9876 dBZ", zrPairs:"\u5b9e\u6d4b\u5bf9\u7167\uff08\u96e8\u91cf\u8ba1 vs \u96f7\u8fbe\uff09",
     zrGauge:"\u5b9e\u6d4b mm/h", zrDbz:"\u5f53\u65f6 dBZ", zrDoFit:"\u7528\u5b9e\u6d4b\u62df\u5408",
     zrNeed:"\u81f3\u5c11\u9700\u8981 3 \u7ec4\u5bf9\u7167", zrFitted:"\u5df2\u62df\u5408", mdlRate:"\u63a8\u7b97",
-    zrCross:"\u4ece\u4e24\u56fe\u914d\u5bf9", zrClear:"\u6e05\u7a7a\u5bf9\u7167",
+    zrCross:"\u4ece\u4e24\u56fe\u914d\u5bf9", zrClear:"\u6e05\u7a7a\u5bf9\u7167", zrSrc:"\u96f7\u8fbe\u6765\u6e90", srcOn:"\u5df2\u8f7d\u5165",
+    offshore:"\u5916\u6d77\u96e8\u533a\uff1a",
+    stopBy:"\u9884\u8ba1\u96e8\u52bf\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
+    stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
+    stopNote:"\u6a21\u5f0f\u9884\u62a5\uff08\u975e\u5b9e\u6d4b\uff09", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
+    probeHint:"\u6307\u5411\u6216\u70b9\u89e6\u5730\u56fe\uff0c\u67e5\u770b\u53bf\u5c5e",
+    inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
+    btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
+    outside:"\u4e0d\u5728\u9a6c\u6765\u897f\u4e9a\u5883\u5185", deleted:"\u5df2\u5220\u9664", btnRestore:"\u6062\u590d", btnPurge:"\u5f7b\u5e95\u6e05\u9664",
+    shared:"\u5df2\u5206\u4eab", longPress:"\u957f\u6309\u56fe\u7247\u53ef\u4fdd\u5b58", btnShare:"\u5206\u4eab\u56fe\u7247",
+    btnWa1:"WA \u901a\u62a5", btnWa2:"WA \u660e\u7ec6", waHead:"\u6536\u85cf\u70b9\u96e8\u60c5\uff1a",
+    waReady:"\u5df2\u5f00 WhatsApp \u00b7 \u56fe\u5df2\u4e0b\u8f7d\uff0c\u8bf7\u9644\u4e0a",
+    waBlocked:"\u5f39\u7a97\u88ab\u62e6 \u00b7 \u6587\u5b57\u5df2\u590d\u5236\uff0c\u56fe\u5df2\u4e0b\u8f7d",
     zrBadFit:"\u4e24\u8005\u4e0d\u4e00\u81f4\uff0c\u4e0d\u53ef\u7528",
     zrNoCross:"\u9700\u8981\u540c\u65f6\u8d34\u5165 Rain Alarm \u4e0e Windy \u4e24\u5f20\u56fe", recalled:"\u6cbf\u7528\u5df2\u5b58\u5b9a\u4f4d", queued:"\u5f85\u5904\u7406", wetCount:"\u53bf\u5c5e\u6709\u96e8", shapeAt:"\u8f6e\u5ed3\u5339\u914d", margin:"\u9886\u5148", more:"\u66f4\u591a\u53bf\u5c5e", listMin:"\u540d\u5355\u2265\u5c0f\u96e8",
     scanning:"\u8bc6\u522b\u4e2d\u2026\u8bf7\u7a0d\u5019", scanOk:"\u5df2\u5b9a\u4f4d", scanNo:"\u65e0\u6cd5\u81ea\u52a8\u5b9a\u4f4d \u2014 \u8bf7\u6539\u7528\u624b\u52a8\u70b9\u9009",
@@ -357,21 +615,20 @@ var I18N = {
     calAnchors:"\u5b9a\u4f4d\u70b9", calFit:"\u8bef\u5dee", calNeed:"\u9700\u8981\u81f3\u5c11 2 \u4e2a\u5b9a\u4f4d\u70b9",
     calCoast:"\u53e0\u793a\u6d77\u5cb8\u7ebf\u6821\u5bf9", calApply:"\u91cd\u6295\u5f71\u5230\u5730\u56fe", calClearImg:"\u6e05\u9664\u8d34\u56fe",
     calSens:"\u7075\u654f\u5ea6", calSensL:["\u4f4e","\u4e2d","\u9ad8"],
-    calSave:"\u5b58\u4e3a\u9884\u8bbe", calPresets:"\u9884\u8bbe", calTime:"\u56fe\u5185\u65f6\u95f4",
+    calSave:"\u5b58\u4e3a\u9884\u8bbe", calPresets:"\u9884\u8bbe", calTime:"\u65f6\u523b", tShot:"\u622a\u56fe\u65f6", tPaste:"\u8d34\u56fe\u65f6",
     calBad:"\u5b9a\u4f4d\u8bef\u5dee\u8fc7\u5927 \u2014 \u8bf7\u91cd\u65b0\u70b9\u51fb", calOk:"\u5df2\u91cd\u6295\u5f71",
     noData:"\u622a\u56fe\u672a\u8986\u76d6", covered:"\u8986\u76d6", radarAt:"\u8d34\u56fe\u65f6\u523b\uff1a",
     obs:"\u5b9e\u6d4b",
     source:"雷达底图来源：Windy.com 与 Rain Alarm Pro（rain-alarm.com）—— 谨此致谢。降雨着色完全来自你贴入的雷达截图（实测）；本应用不连接任何天气 API。行政边界：Malaysia ADM2 160 县。此通报为个人参考，官方警报以马来西亚气象局（MET Malaysia）为准。"
   },
   en: {
-    brandZh:"雨情通报", brandEn:"RAINBULLETIN", tagline:"Favourites · rainfall by district", vAll:"All", vPen:"Peninsular", vBor:"Sabah & Sarawak",
+    brandZh:"雨情", brandEn:"RAINBULLETIN", tagline:"Rainfall by district", vAll:"All", vPen:"Peninsular", vBor:"Sabah & Sarawak",
     btnCopy:"Copy text", btnPng:"Save PNG", btnEdit:"Favourites",
     secRoster:"Favourite locations", secSource:"Data source",
     dlgTitle:"Manage favourites", fName:"Name", fLat:"Latitude", fLon:"Longitude",
     btnAdd:"Add", btnLoad:"Load from text", btnDump:"Dump to text", btnReset:"Restore samples", btnClose:"Done",
     ioHint:"Bulk: one “name, lat, lon” per line",
     bTitle:"RAIN BULLETIN", bLegend:"Raining now",
-    official:"Official warnings: MET Malaysia (met.gov.my)",
     bNone:"No rain at any favourite location right now.", stale:"Data is stale",
     noFav:"No favourites yet. Tap “Favourites” to add your orchards.",
     unassigned:"outside district polygons",
@@ -382,7 +639,19 @@ var I18N = {
     zrHint:"a \u00b7 b \u00b7 cap dBZ", zrPairs:"Gauge vs radar pairs",
     zrGauge:"Gauge mm/h", zrDbz:"dBZ then", zrDoFit:"Fit from pairs",
     zrNeed:"Needs at least 3 pairs", zrFitted:"Fitted", mdlRate:"modelled",
-    zrCross:"Pair from two images", zrClear:"Clear pairs",
+    zrCross:"Pair from two images", zrClear:"Clear pairs", zrSrc:"Radar source", srcOn:"on map",
+    offshore:"Offshore rain:",
+    stopBy:"Rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
+    stopBeyond:"Rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
+    stopNote:"model forecast (not observed)", srcFav:"favourites", srcDist:"districts",
+    probeHint:"Point at or tap the map to identify a district",
+    inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
+    btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
+    outside:"Outside Malaysia", deleted:"Deleted", btnRestore:"Restore", btnPurge:"Purge",
+    shared:"Shared", longPress:"Long-press the image to save it", btnShare:"Share image",
+    btnWa1:"WA bulletin", btnWa2:"WA detail", waHead:"Raining at favourite locations:",
+    waReady:"WhatsApp opened \u00b7 image downloaded \u2014 attach it",
+    waBlocked:"Popup blocked \u00b7 text copied, image downloaded",
     zrBadFit:"sources disagree \u2014 not usable",
     zrNoCross:"Needs a Rain Alarm and a Windy layer loaded together", recalled:"Reused saved calibration", queued:"queued", wetCount:"districts raining", shapeAt:"shape match", margin:"margin", more:"more districts", listMin:"list \u2265 light",
     scanning:"Locating\u2026 one moment", scanOk:"Located", scanNo:"Could not locate \u2014 switch to manual anchors",
@@ -399,7 +668,7 @@ var I18N = {
     calAnchors:"Anchors", calFit:"Fit error", calNeed:"Needs at least 2 anchors",
     calCoast:"Overlay coastline to check", calApply:"Reproject onto map", calClearImg:"Clear image",
     calSens:"Sensitivity", calSensL:["Low","Medium","High"],
-    calSave:"Save as preset", calPresets:"Presets", calTime:"Time shown in image",
+    calSave:"Save as preset", calPresets:"Presets", calTime:"Timestamp", tShot:"Screenshot", tPaste:"Pasted",
     calBad:"Fit error too large \u2014 re-tap the anchors", calOk:"Reprojected",
     noData:"outside screenshot", covered:"covered", radarAt:"Image: ",
     obs:"observed",
@@ -478,6 +747,70 @@ var STATE_ZH = {
 };
 function stateName(s){ return LANG === "zh" ? (STATE_ZH[s] || s) : s; }
 
+/* Standard Chinese names for all 160 ADM2 districts — the forms the Chinese
+   dailies print, so a farmer reads the same name here as in the paper.
+   East Malaysian names verified against zh.wikipedia division articles:
+   e.g. Putatan 必打丹, Tongod 东革, Telupid 特鲁必, Beluru 柏鲁鲁. */
+var DIST_ZH = {
+  /* Johor 柔佛 */
+  "Batu Pahat":"峇株巴辖","Johor Bahru":"新山","Kluang":"居銮","Kota Tinggi":"哥打丁宜",
+  "Kulai":"古来","Mersing":"丰盛港","Muar":"麻坡","Pontian":"笨珍","Segamat":"昔加末","Tangkak":"东甲",
+  /* Kedah 吉打 */
+  "Baling":"华玲","Bandar Baharu":"万拉峇鲁","Kota Setar":"哥打士打","Kuala Muda":"瓜拉姆达",
+  "Kubang Pasu":"古邦巴素","Kulim":"居林","Langkawi":"浮罗交怡","Padang Terap":"巴东得腊",
+  "Pendang":"万捷","Pokok Sena":"波各先那","Sik":"锡县","Yan":"铅县",
+  /* Kelantan 吉兰丹 */
+  "Bachok":"巴佐","Gua Musang":"话望生","Jeli":"日里","Kecil Lojing":"罗京","Kota Bharu":"哥打峇鲁",
+  "Kuala Krai":"瓜拉吉赖","Machang":"马樟","Pasir Mas":"巴西马","Pasir Puteh":"巴西富地",
+  "Tanah Merah":"丹那美拉","Tumpat":"道北",
+  /* Melaka 马六甲 */
+  "Alor Gajah":"亚罗牙也","Jasin":"野新","Melaka Tengah":"中央县",
+  /* Negeri Sembilan 森美兰 */
+  "Jelebu":"日叻务","Jempol":"仁保","Kuala Pilah":"瓜拉庇劳","Port Dickson":"波德申",
+  "Rembau":"林茂","Seremban":"芙蓉","Tampin":"淡边",
+  /* Pahang 彭亨 */
+  "Bentong":"文冬","Bera":"百乐","Cameron Highlands":"金马仑","Jerantut":"而连突","Kuantan":"关丹",
+  "Lipis":"立卑","Maran":"马兰","Pekan":"北根","Raub":"劳勿","Rompin":"云冰","Temerloh":"淡马鲁",
+  /* Perak 霹雳 */
+  "Bagan Datuk":"峇眼拿督","Batang Padang":"马登巴冷","Hilir Perak":"下霹雳","Hulu Perak":"上霹雳",
+  "Kampar":"金宝","Kerian":"吉辇","Kinta":"近打","Kuala Kangsar":"江沙","Larut Dan Matang":"拉律马登",
+  "Manjung":"曼绒","Muallim":"慕亚林","Perak Tengah":"中霹雳","Selama":"司南马",
+  /* Perlis 玻璃市 */
+  "Perlis":"玻璃市",
+  /* Pulau Pinang 槟城 */
+  "Barat Daya":"西南县","Seberang Perai Selatan":"威南","Seberang Perai Tengah":"威中",
+  "Seberang Perai Utara":"威北","Timur Laut":"东北县",
+  /* Sabah 沙巴 */
+  "Beaufort":"保佛","Beluran":"比鲁兰","Kalabakan":"加拉巴干","Keningau":"根地咬",
+  "Kinabatangan":"京那峇当岸","Kota Belud":"哥打毛律","Kota Kinabalu":"亚庇","Kota Marudu":"哥打马鲁都",
+  "Kuala Penyu":"瓜拉班尤","Kudat":"古达","Kunak":"古纳","Lahad Datu":"拿笃","Nabawan":"纳巴湾",
+  "Papar":"吧巴","Penampang":"兵南邦","Pitas":"必达士","Putatan":"必打丹","Ranau":"兰瑙",
+  "Sandakan":"山打根","Semporna":"仙本那","Sipitang":"实必丹","Tambunan":"丹布南","Tawau":"斗湖",
+  "Telupid":"特鲁必","Tenom":"丹南","Tongod":"东革","Tuaran":"斗亚兰",
+  /* Sarawak 砂拉越 */
+  "Asajaya":"亚沙再也","Bau":"石隆门","Belaga":"布拉甲","Beluru":"柏鲁鲁","Betong":"木中",
+  "Bintulu":"民都鲁","Bukit Mabong":"武吉玛邦","Dalat":"达叻","Daro":"达鲁","Julau":"如楼",
+  "Kabong":"甲望","Kanowit":"加拿逸","Kapit":"加帛","Kuching":"古晋","Lawas":"老越","Limbang":"林梦",
+  "Lubok Antu":"鲁勃安都","Lundu":"伦乐","Maradong":"马拉端","Marudi":"马鲁帝","Matu":"马都",
+  "Miri":"美里","Mukah":"沐胶","Pakan":"巴干","Pusa":"浮刹","Samarahan":"三马拉汉",
+  "Saratok":"砂拉卓","Sarikei":"泗里街","Sebauh":"实包勿","Selangau":"实兰沟","Serian":"西连",
+  "Sibu":"诗巫","Simunjan":"实文然","Song":"桑坡","Sri Aman":"斯里阿曼","Subis":"苏必士",
+  "Tanjung Manis":"丹绒马尼","Tatau":"达岛","Tebedu":"打必禄","Telang Usan":"特朗乌山",
+  /* Selangor 雪兰莪 */
+  "Gombak":"鹅唛","Klang":"巴生","Kuala Langat":"瓜拉冷岳","Kuala Selangor":"瓜拉雪兰莪",
+  "Petaling":"八打灵","Sabak Bernam":"沙白安南","Sepang":"雪邦","Ulu Langat":"乌鲁冷岳",
+  "Ulu Selangor":"乌鲁雪兰莪",
+  /* Terengganu 登嘉楼 */
+  "Besut":"勿述","Dungun":"龙运","Hulu Terengganu":"乌鲁登嘉楼","Kemaman":"甘马挽",
+  "Kuala Nerus":"瓜拉尼鲁斯","Kuala Terengganu":"瓜拉登嘉楼","Marang":"马江","Setiu":"士兆",
+  /* WP 直辖区 */
+  "W.P. Kuala Lumpur":"吉隆坡","W.P. Labuan":"纳闽","W.P. Putrajaya":"布城"
+};
+function distName(d){
+  var n = d && d.name ? d.name : d;
+  return LANG === "zh" ? (DIST_ZH[n] || n) : n;
+}
+
 /* ── point in polygon ── */
 function inRing(x, y, r) {
   var c = false;
@@ -539,7 +872,7 @@ var LANDMARKS = [
   ["Pekanbaru", 0.5071, 101.4478],    ["Pontianak", -0.0263, 109.3425]
 ];
 function anchorChoices() {
-  return LANDMARKS.concat(FAVS.map(function (f) { return [f.n, f.la, f.lo]; }));
+  return LANDMARKS.concat(liveFavs().map(function (f) { return [f.n, f.la, f.lo]; }));
 }
 
 /* least squares over n≥2 anchors: solve A, Bx, By */
@@ -570,6 +903,93 @@ function solveCal(pts) {
 
 /* ── district index raster, ~2.2 km cells, built once ── */
 var GX0 = 99.2, GY1 = 7.6, GST = 0.02, GW = 1020, GH = 356, RASTER = null;
+/* ══ Offshore rain ════════════════════════════════════════════════
+   More than half the echo in a typical capture falls outside Malaysia — most
+   of it over water. The bulletin is right to leave those districts white, but
+   a farmer in Bintulu looking at a blank map deserves to know there is a band
+   sitting off his coast. A flood-plane BFS out from the district raster gives,
+   for any offshore point, which district is nearest and how far. */
+/* The district raster stops at Malaysia's own bounding box, which cuts off at
+   7.6N — and a third of the echo in a typical Peninsular capture sits north of
+   that, in the Gulf of Thailand. Pad the field generously so a storm offshore
+   of Kelantan is still measured against the Kelantan coast. */
+var NPAD = 90;                                /* 1.8 degrees, well past the 120 km reach */
+var NW = GW + 2 * NPAD, NH = GH + 2 * NPAD;
+var NEARD = null;
+function nearField() {
+  if (NEARD) return NEARD;
+  var R = buildRaster(), n = NW * NH;
+  var idp = new Int32Array(n), dst = new Int32Array(n);
+  var q = new Int32Array(n), head = 0, tail = 0, i, j;
+  for (i = 0; i < n; i++) { idp[i] = 0; dst[i] = 1 << 20; }
+  for (j = 0; j < GH; j++) for (i = 0; i < GW; i++) {
+    var v = R[j * GW + i];
+    if (!v) continue;
+    var o0 = (j + NPAD) * NW + (i + NPAD);
+    idp[o0] = v; dst[o0] = 0; q[tail++] = o0;
+  }
+  while (head < tail) {
+    var c = q[head++], cx = c % NW, cy = (c / NW) | 0, nd = dst[c] + 1;
+    if (nd > NPAD) continue;                  /* nothing beyond the pad is asked for */
+    for (var k = 0; k < 4; k++) {
+      var nx = cx + (k === 0 ? 1 : k === 1 ? -1 : 0);
+      var ny = cy + (k === 2 ? 1 : k === 3 ? -1 : 0);
+      if (nx < 0 || ny < 0 || nx >= NW || ny >= NH) continue;
+      var o = ny * NW + nx;
+      if (dst[o] <= nd) continue;
+      dst[o] = nd; idp[o] = idp[c]; q[tail++] = o;
+    }
+  }
+  NEARD = { id:idp, d:dst };
+  return NEARD;
+}
+
+var COMPASS_ZH = ["\u5317", "\u4e1c\u5317", "\u4e1c", "\u4e1c\u5357",
+                  "\u5357", "\u897f\u5357", "\u897f", "\u897f\u5317"];
+/* Spelled out — "East of Terengganu" reads at a glance; "E of Terengganu"
+   makes the eye stop and expand the abbreviation. */
+var COMPASS_EN = ["North", "Northeast", "East", "Southeast",
+                  "South", "Southwest", "West", "Northwest"];
+
+/* Walk the source image; every echo sample that is not on Malaysian soil but
+   is within reach of it gets attributed to the nearest state and a bearing. */
+function offshoreScan(cal, px32, iw, ih) {
+  var N = nearField(), G = landGrid(), acc = {};
+  var MAXCELL = 60;                       /* ~120 km at the 0.02 degree grid */
+  for (var y = 0; y < ih; y += 4) {
+    for (var x = 0; x < iw; x += 4) {
+      var o = (y * iw + x) * 4;
+      /* Only a band worth mentioning. The bottom of Windy's ramp is a purple
+         haze the eye cannot see — reporting it put "off west Perak" on the card
+         when the strait looked empty. */
+      if (bandOf(px32[o], px32[o+1], px32[o+2], px32[o+3]) < OFFSHORE_MIN_STEP) continue;
+      var wx = (x - cal.Bx) / cal.A, wy = (y - cal.By) / cal.A;
+      var lon = wx * 360 - 180;
+      var lat = (Math.atan(Math.exp((0.5 - wy) * 2 * Math.PI)) * 4 / Math.PI - 1) * 180 / Math.PI;
+      var gx = Math.floor((lon - GX0) / GST) + NPAD;
+      var gy = Math.floor((GY1 - lat) / GST) + NPAD;
+      if (gx < 0 || gy < 0 || gx >= NW || gy >= NH) continue;
+      var gi = gy * NW + gx;
+      if (N.d[gi] === 0) continue;                 /* Malaysian soil, already counted */
+      if (N.d[gi] > MAXCELL) continue;             /* too far out to matter */
+      /* "Offshore" has to mean water. Without this, rain over southern Thailand
+         reads as 吉兰丹西外海 — a coast Kelantan does not have. */
+      var li = Math.floor((lon - LG.lon0) / LG.st);
+      var lj = Math.floor((LG.lat1 - lat) / LG.st);
+      if (li < 0 || lj < 0 || li >= LG.nx || lj >= LG.ny) continue;
+      if (G.bits[lj * LG.nx + li]) continue;       /* foreign land, not sea */
+      var D = DIST[N.id[gi] - 1];
+      if (!D) continue;
+      var dx = lon - D.cen[0], dy = lat - D.cen[1];
+      var ang = Math.atan2(dx, dy) * 180 / Math.PI;     /* 0 = north */
+      var sect = ((Math.round(ang / 45) % 8) + 8) % 8;
+      var key = D.state + "|" + sect;
+      acc[key] = (acc[key] || 0) + 1;
+    }
+  }
+  return acc;
+}
+
 function buildRaster() {
   if (RASTER) return RASTER;
   var c = document.createElement("canvas"); c.width = GW; c.height = GH;
@@ -660,25 +1080,38 @@ var ZR_PRESETS = {
 };
 /* Above roughly 53 dBZ the returns are hail and bright band, not rain, and
    any Z-R runs away — a tropical fit gives 1600 mm/h at 60 dBZ. Cap it. */
-/* Default to Marshall-Palmer: it is what the source apps themselves use, so
-   out of the box this bulletin agrees with the radar app it was read from.
-   Tropical is one tap away and is physically better suited to Malaysian
-   convection — but it reports two to three times more, and that is a claim
-   worth making deliberately rather than by default. */
-var ZR = store.get("zr", { a:200, b:1.6, cap:53 });
-function saveZR() { store.set("zr", ZR); }
+/* One relation per source, not one for the app. Cross-calibrating Windy
+   against Rain Alarm returned R2 = 0.11 on simultaneous captures — the two
+   disagree by up to 55x at the same reflectivity, because they composite
+   different radars and fill gaps differently. A single shared Z-R would have
+   to be wrong for at least one of them, so each source carries its own and is
+   calibrated against gauge readings separately.
 
-function dbzToRate(dbz) {
-  var z = Math.pow(10, Math.min(dbz, ZR.cap) / 10);
-  return Math.pow(z / ZR.a, 1 / ZR.b);
+   Marshall-Palmer is the default: it is what the source apps themselves use,
+   so out of the box this bulletin agrees with the app it was read from. */
+var ZR_DEFAULT = { a:200, b:1.6, cap:53 };
+var ZRS = store.get("zrs", {});
+var ZR = ZR_DEFAULT;                        /* the one being edited */
+function zrFor(pal) {
+  var k = pal || "-";
+  return ZRS[k] || ZR_DEFAULT;
+}
+function saveZR() { store.set("zrs", ZRS); }
+
+function dbzToRate(dbz, pal) {
+  var z = pal === undefined ? ZR : zrFor(pal);
+  var d = Math.pow(10, Math.min(dbz, z.cap) / 10);
+  return Math.pow(d / z.a, 1 / z.b);
 }
 function stepDbz(step) {
   if (step <= 0) return 0;
   var lo = STEP_DBZ[step], hi = (step < 12) ? STEP_DBZ[step + 1] : lo + 5;
   return (lo + hi) / 2;                       /* the bin, not its lower edge */
 }
-function stepRate(step) { return step <= 0 ? 0 : dbzToRate(stepDbz(step)); }
-function stepCapped(step) { return step > 0 && stepDbz(step) > ZR.cap; }
+function stepRate(step, pal) { return step <= 0 ? 0 : dbzToRate(stepDbz(step), pal); }
+function stepCapped(step, pal) {
+  return step > 0 && stepDbz(step) > (pal === undefined ? ZR : zrFor(pal)).cap;
+}
 function fmtRate(r) {
   if (r >= 100) return String(Math.round(r));
   if (r >= 10) return r.toFixed(0);
@@ -695,7 +1128,7 @@ function rateBand(r) {
   return 5;
 }
 /* bands cut at MET Malaysia's own hujan lebat threshold of 20 mm/h */
-function stepBand(step) { return rateBand(stepRate(step)); }
+function stepBand(step, pal) { return rateBand(stepRate(step, pal)); }
 /* With no palette there is no reflectivity, so there is no rate. The ordinal
    bands must be carried through as themselves — routing them via pseudo-steps
    and a Z-R inflated them, because 42.5 dBZ under a tropical relation is
@@ -829,6 +1262,7 @@ function detectPalette(ctx, iw, ih) {
 }
 
 var BASEMAP = null, BASEFILLS = [];
+var LAST_OFFSHORE = null;
 function colourBin(r, g, b) { return ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4); }
 function learnBasemap(ctx, iw, ih) {
   var f = Math.min(1, 420 / Math.max(iw, ih));
@@ -863,20 +1297,27 @@ function learnBasemap(ctx, iw, ih) {
 
 /* Area sampling asks this ~750k times per layer, but a radar image holds only
    a few hundred distinct colours. Decide each one once. */
-var BANDCACHE = null;
-function resetBandCache() { BANDCACHE = new Int8Array(32768).fill(-1); }
+var BANDCACHE = null, MMCACHE = null;
+function resetBandCache() {
+  BANDCACHE = new Int8Array(32768).fill(-1);
+  MMCACHE = new Float32Array(32768);
+}
 function bandOf(r, g, b, a) {
-  if (a < 40) return 0;
+  if (a < 40) { MATCH_MM = 0; return 0; }
   var key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
   if (BANDCACHE) {
     var hit = BANDCACHE[key];
-    if (hit >= 0) return hit;
+    /* the cached rate travels with the cached band — without this, MATCH_MM
+       kept the last COMPUTED colour's rate and every cache hit paired a pixel
+       with some other pixel's millimetres */
+    if (hit >= 0) { MATCH_MM = MMCACHE[key]; return hit; }
   }
   var out = bandCompute(r, g, b);
-  if (BANDCACHE) BANDCACHE[key] = out;
+  if (BANDCACHE) { BANDCACHE[key] = out; MMCACHE[key] = out > 0 ? MATCH_MM : 0; }
   return out;
 }
 function bandCompute(r, g, b) {
+  MATCH_MM = 0;                 /* only a palette match may set a rate */
   if (BASEMAP && BASEMAP[colourBin(r, g, b)]) return 0;
   if (PALETTE) {
     /* Blended anchors reach into pale mauve territory, which plain basemap grey
@@ -1005,16 +1446,30 @@ function pathFor(D, P) {
 /* ══ favourites ══ */
 function loadFavs() {
   if (store.get("seed", 0) !== SEED_VERSION) {
-    store.set("favs", SEED.map(function (s) { return { n:s[0], la:s[1], lo:s[2] }; }));
+    store.set("favs", SEED.map(function (s) {
+      return { n:s[0], la:s[1], lo:s[2], g:s[3] || "", st:0 };
+    }));
     store.set("seed", SEED_VERSION);
   }
   return store.get("favs", []);
 }
 var FAVS = loadFavs();
-function saveFavs(){ store.set("favs", FAVS); }
+function saveFavs(){ store.set("favs", FAVS); clearCoinc(); }
+
+/* A farm the user typed in themselves is theirs, and deleting it by accident
+   loses work that isn't in the seed. Those are soft-deleted and recoverable.
+   A seed entry is always one 还原示范 away, so removing it stays immediate. */
+function isMine(f) { return !!f.u; }
+function liveFavs() { return FAVS.filter(function (f) { return !f.del; }); }
 
 /* ══ state ══ */
 var VIEW = "all";
+var PINS = store.get("pins", 1);            /* 114 dots is a lot; let them be hidden */
+/* Session-only, deliberately NOT persisted: yesterday's expanded groups were
+   expanded because of yesterday's rain, and nobody launches the app to see
+   expired data. Every launch starts collapsed; today's paste opens today's
+   rainy groups; toggles made by hand hold for the session only. */
+var ROSTER_OPEN = {};
 
 /* ══ time helpers — the status row is gone; its two jobs, the raining count
    and the staleness warning, now live on the bulletin card itself ══ */
@@ -1502,6 +1957,23 @@ function signatureMatch(a, b) {
   return num / Math.sqrt(da * db);
 }
 
+/* Coast fit for a hand-placed calibration: does the outline sit on edges
+   under this transform, and stop doing so when nudged. Same yardstick as
+   verifyCal, without the polarity/area gates — the anchors were eyeballed.
+   The edge map and its distance transform are cached per pasted image, since
+   this runs every time an anchor is added or removed. */
+function scoreCal(cal) {
+  if (scoreCal._img !== IMGC) {
+    var E = edgeMap(IMGX, IMGC.width, IMGC.height);
+    var L0 = { bin:E.bin, w:E.w, h:E.h };
+    L0.D = distTransform(E.bin, E.w, E.h);
+    scoreCal._L = L0; scoreCal._f = E.f; scoreCal._img = IMGC;
+  }
+  var pts = sceneWorld(900).concat(coastWorld(900));
+  var c0 = { A:cal.A * scoreCal._f, bx:cal.Bx * scoreCal._f, by:cal.By * scoreCal._f };
+  return { r: localContrast(scoreCal._L, pts, c0) };
+}
+
 /* Verifying a known transform is a far easier problem than finding one: no
    search, no false peaks, just "does the outline sit on edges here, and does
    it stop doing so if I nudge it". That makes remembered calibrations usable
@@ -1593,23 +2065,104 @@ function regionOf(cells) {
   if (east > 4 && west > 4) return "all";
   return east > west ? "east" : "west";
 }
+/* One line naming where the offshore bands sit, if any are close enough to
+   matter. Only the strongest bearing per state is reported — a farmer wants
+   "off northwest Sarawak", not a list of octants. */
+var OFFSHORE_MIN = 120;                 /* a band, not a speck */
+var OFFSHORE_MIN_STEP = 3;              /* >= 0.6 mm/h — Windy's bottom two steps are a purple haze the eye cannot see */
+function offshoreLine() {
+  var acc = {};
+  /* one voice per region: two sources of the same region must not double the
+     counts, exactly as rebuildRadar lets one layer speak per district */
+  var byRegion = {};
+  LAYERS.forEach(function (L) {
+    var o = L.cells && L.cells.offshore;
+    if (!o) return;
+    var tot = 0;
+    Object.keys(o).forEach(function (k) { tot += o[k]; });
+    var cur = byRegion[L.region];
+    if (!cur || tot > cur.tot) byRegion[L.region] = { o:o, tot:tot };
+  });
+  Object.keys(byRegion).forEach(function (r) {
+    var o = byRegion[r].o;
+    Object.keys(o).forEach(function (k) { acc[k] = (acc[k] || 0) + o[k]; });
+  });
+  var byState = {};
+  Object.keys(acc).forEach(function (k) {
+    var p = k.split("|"), st = p[0], sect = +p[1], n = acc[k];
+    if (!byState[st] || n > byState[st].n) byState[st] = { sect:sect, n:n };
+    byState[st].tot = (byState[st].tot || 0) + n;
+  });
+  var out = [];
+  Object.keys(byState).forEach(function (st) {
+    if (byState[st].tot < OFFSHORE_MIN) return;
+    var c = (LANG === "zh" ? COMPASS_ZH : COMPASS_EN)[byState[st].sect];
+    out.push({ s:stateName(st), c:c, n:byState[st].tot });
+  });
+  out.sort(function (a, b) { return b.n - a.n; });
+  if (!out.length) return "";
+  return out.slice(0, 3).map(function (o) {
+    return LANG === "zh" ? o.s + o.c + "\u5916\u6d77" : o.c + " of " + o.s;
+  }).join("  \u00b7  ");
+}
+
+/* "Sg. Klau - Kwong Seng 双溪吉流 - Kwong Seng" is far too long for a map
+   label. Take the leading Latin place name, before the owner or the Chinese. */
+/* The RainScore names read "place - owner 中文地名 - 中文名". A farmer finds his
+   own plot by the OWNER, not the village — three farms round Sungai Klau are
+   all "Sg. Klau" — so keep the latin half whole and only drop the CJK tail. */
+/* five-pointed star centred on cx,cy */
+function starPath(cx, cy, ro, ri) {
+  var d = "", i, a, r;
+  for (i = 0; i < 10; i++) {
+    a = -Math.PI / 2 + i * Math.PI / 5;
+    r = (i % 2) ? ri : ro;
+    d += (i ? "L" : "M") + (cx + r * Math.cos(a)).toFixed(1) + " "
+       + (cy + r * Math.sin(a)).toFixed(1);
+  }
+  return d + "Z";
+}
+
+/* every favourite sitting on exactly this coordinate */
+var COINC = null;
+function coincidentIndex() {
+  if (COINC) return COINC;
+  COINC = {};
+  liveFavs().forEach(function (f) {
+    var k = f.la.toFixed(5) + "," + f.lo.toFixed(5);
+    (COINC[k] = COINC[k] || []).push(f);
+  });
+  return COINC;
+}
+function coincident(key) { return coincidentIndex()[key] || []; }
+function clearCoinc() { COINC = null; }
+
+function shortFarm(n) {
+  var t = String(n).replace(/[\u3400-\u9fff\uf900-\ufaff][\s\S]*$/, "").trim();
+  t = t.replace(/[\s\-\u00b7,]+$/, "");
+  if (!t) t = String(n).slice(0, 18);
+  return t.length > 24 ? t.slice(0, 23) + "\u2026" : t;
+}
+
 function regionLabel(r) { return T(r === "east" ? "regEast" : r === "all" ? "regAll" : "regWest"); }
 
 /* merge every layer into one per-district verdict */
 function rebuildRadar() {
+  clearPointCache();
   if (!LAYERS.length) { RADAR = null; return; }
-  var cells = DIST.map(function () { return { inn:0, echo:0, hist:[0,0,0,0,0,0,0,0,0,0,0,0,0] }; });
+  var cells = DIST.map(function () { return { inn:0, echo:0, hist:[0,0,0,0,0,0,0,0,0,0,0,0,0], pal:null }; });
   DIST.forEach(function (D, i) {
     /* whichever image sees the most of this district speaks for it */
-    var best = null;
+    var best = null, bestPal = null;
     LAYERS.forEach(function (L) {
       var t = L.cells[i];
       if (!t || t.inn === 0) return;
-      if (!best || t.inn > best.inn) best = t;
+      if (!best || t.inn > best.inn) { best = t; bestPal = L.palette ? L.palette.name : null; }
     });
     if (best) {
       cells[i].inn = best.inn; cells[i].echo = best.echo;
       cells[i].hist = best.hist.slice();
+      cells[i].pal = bestPal;
     }
   });
   RADAR = {
@@ -1622,31 +2175,62 @@ function rebuildRadar() {
 }
 
 /* point sample: first layer that actually contains the coordinate wins */
-function bandAtPoint(lat, lon) {
-  if (!LAYERS.length) return null;
-  var seen = false, best = 0;
+/* What is falling at one favourite. A 3x3 pixel probe was too sharp — at
+   1.5 km per pixel that is a 4.5 km box, so a farm could read dry while its
+   district was a third under rain, and the roster then contradicted the map.
+   Sample a ~6 km neighbourhood instead, which is about the scale a farmer
+   means by "here". */
+var PICACHE = {};
+function clearPointCache() { PICACHE = {}; }
+function pointInfo(lat, lon) {
+  if (!LAYERS.length) return { seen:false, step:0 };
+  var ck = lat.toFixed(4) + "," + lon.toFixed(4);
+  if (PICACHE[ck]) return PICACHE[ck];
+  var seen = false, best = 0, pal = null;
   for (var k = 0; k < LAYERS.length; k++) {
     var L = LAYERS[k], c = L.cal;
-    var ipx = (c.A * wmx(lon) + c.Bx) | 0, ipy = (c.A * wmy(lat) + c.By) | 0;
-    if (ipx < 1 || ipy < 1 || ipx >= L.iw - 1 || ipy >= L.ih - 1) continue;
+    var cx = (c.A * wmx(lon) + c.Bx) | 0, cy = (c.A * wmy(lat) + c.By) | 0;
+    var kmPx = 40075 / c.A;
+    var rad = Math.max(2, Math.min(24, Math.round(3 / kmPx)));   /* ~6 km across */
+    if (cx < rad || cy < rad || cx >= L.iw - rad || cy >= L.ih - rad) continue;
     seen = true;
     if (BASEMAP !== (L.basemap || null) || PALETTE !== (L.palette || null)) {
-      BASEMAP = L.basemap || null; PALETTE = L.palette || null; resetBandCache();
+      BASEMAP = L.basemap || null; PALETTE = L.palette || null;
+      BASEFILLS = L.fills || [];
+      resetBandCache();
     }
-    var d = L.ctx.getImageData(ipx - 1, ipy - 1, 3, 3).data;
-    for (var i = 0; i < d.length; i += 4) {
-      var b = bandOf(d[i], d[i+1], d[i+2], d[i+3]);
-      if (b > best) best = b;
+    var n = 2 * rad + 1;
+    var d = L.ctx.getImageData(cx - rad, cy - rad, n, n).data;
+    var st = Math.max(1, Math.floor(n / 9));
+    for (var y = 0; y < n; y += st) for (var x = 0; x < n; x += st) {
+      var o = (y * n + x) * 4;
+      var b = bandOf(d[o], d[o+1], d[o+2], d[o+3]);
+      if (b > best) { best = b; pal = L.palette ? L.palette.name : null; }
     }
   }
-  if (!seen) return -1;
-  return (RADAR && RADAR.rates) ? stepBand(best) : (GEN_BAND[best] || (best ? 1 : 0));
+  if (!seen) { PICACHE[ck] = { seen:false, step:0 }; return PICACHE[ck]; }
+  var rated = RADAR && RADAR.rates;
+  return (PICACHE[ck] = {
+    seen: true, step: best, pal: pal,
+    band: best === 0 ? 0 : (rated ? stepBand(best, pal) : (GEN_BAND[best] || 1)),
+    mm: (rated && best > 0) ? Math.round(stepRate(best, pal) * 100) / 100 : null,
+    dbz: best > 0 ? stepDbz(best) : null
+  });
+}
+function bandAtPoint(lat, lon) {
+  var p = pointInfo(lat, lon);
+  return p.seen ? p.band : -1;
 }
 
 /* Counting districts precisely is not what this bulletin is for. A district
    earns a colour by having a real share of itself wet, and its band comes from
    the bulk of that rain rather than its single brightest cell. */
+/* Coverage alone punishes big districts and puts them on a cliff edge. Jerantut
+   is 1347 cells; 27 of them wet is 2% but it is ~110 km2 of real rain, and
+   Temerloh at 4.9% vanished between one frame and the next while plainly
+   raining. So: a real fraction of a district, OR a real area of it. */
 var WET_MIN_COV = 0.05;
+var WET_MIN_CELLS = 12;                 /* ~48 km2 at the 2 km grid */
 function districtStep(t) {
   var echo = t.echo;
   if (!echo) return 0;
@@ -1666,12 +2250,12 @@ function wetDistricts() {
     var need = t.inn <= 6 ? 1 : 2;
     if (t.echo < need) return;
     var cov = t.echo / t.inn;
-    if (cov < WET_MIN_COV) return;
+    if (cov < WET_MIN_COV && t.echo < WET_MIN_CELLS) return;
     var st = districtStep(t);
     var rated = RADAR && RADAR.rates;
-    m[i] = { band:rated ? stepBand(st) : (GEN_BAND[st] || 1), step:st, cov:cov, d:DIST[i],
-             dbz:stepDbz(st),
-             mm:(RADAR && RADAR.rates) ? Math.round(stepRate(st) * 100) / 100 : null };
+    m[i] = { band:rated ? stepBand(st, t.pal) : (GEN_BAND[st] || 1), step:st, cov:cov, d:DIST[i],
+             dbz:stepDbz(st), pal:t.pal,
+             mm:rated ? Math.round(stepRate(st, t.pal) * 100) / 100 : null };
   });
   return m;
 }
@@ -1685,7 +2269,7 @@ function noDataDistricts() {
 
 function watchedDistricts() {
   var m = {};
-  FAVS.forEach(function (f) { var d = districtAt(f.lo, f.la); if (d) m[d.id] = 1; });
+  liveFavs().forEach(function (f) { var d = districtAt(f.lo, f.la); if (d) m[d.id] = 1; });
   return m;
 }
 
@@ -1709,10 +2293,14 @@ function rollCall() {
   var more = 0;
   if (keep.length > ROLL_MAX) { more = keep.length - ROLL_MAX; keep = keep.slice(0, ROLL_MAX); }
   var byState = {};
-  keep.forEach(function (w) { (byState[w.d.state] = byState[w.d.state] || []).push(w.d.name); });
+  keep.forEach(function (w) { (byState[w.d.state] = byState[w.d.state] || []).push(w.d); });
   var out = Object.keys(byState).sort().map(function (s) {
     var all = byState[s].length === STATE_N[s];
-    return { state:stateName(s), dists:all ? null : byState[s].sort() };
+    /* sort on the English name so the order is stable across languages,
+       then print whichever language is active */
+    return { state:stateName(s), dists:all ? null : byState[s]
+      .sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; })
+      .map(distName) };
   });
   out.more = more;
   return out;
@@ -1727,7 +2315,8 @@ function drawBulletin() {
 
   // measure the footer roll-call so the card grows to fit it
   var footLines = buildFootLines(roll, W - 40);
-  var FOOT = 40 + footLines.length * 19 + 16 + 20;
+  var offs = offshoreLine();
+  var FOOT = 40 + footLines.length * 19 + 16 + (offs ? 19 : 0);
   var H = HEAD + MAP + FOOT;
 
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
@@ -1808,14 +2397,14 @@ function drawBulletin() {
              : nd[D.id] ? "url(#nodata)"
              : watched[D.id] ? "#ffffff" : "#f4f4f7";
     var p = el("path", { d: pathFor(D, proj), fill: fill, stroke:"none" });
-    var title = el("title");
-    title.textContent = D.name + ", " + stateName(D.state)
+    p.setAttribute("data-d", D.id);
+    var lbl = distName(D) + ", " + stateName(D.state)
       + (w ? " \u2014 " + T("lv")[w.band]
-             + (w.mm != null ? " \u00b7 " + (stepCapped(w.step) ? "\u2265" : "")
+             + (w.mm != null ? " \u00b7 " + (stepCapped(w.step, w.pal) ? "\u2265" : "")
                  + fmtRate(w.mm) + " mm/h \u00b7 " + w.dbz + " dBZ" : "")
              + " (" + Math.round(w.cov * 100) + "% " + T("covered") + ")"
            : nd[D.id] ? " \u2014 " + T("noData") : "");
-    p.appendChild(title);
+    p.setAttribute("aria-label", lbl);
     g.appendChild(p);
   });
 
@@ -1844,17 +2433,94 @@ function drawBulletin() {
   });
 
   /* favourite pins */
-  FAVS.forEach(function (f) {
+  var starred = [];
+  /* Grouping puts some farms in two lists at once — the Bentong sites appear
+     under both the area and the team — so several entries share one coordinate.
+     One pin per place on the map; the roster still lists every entry, and they
+     read identically because the rain is sampled from the same point. */
+  var seenPt = {};
+  liveFavs().forEach(function (f) {
     /* Clipping only stops overflow past the band edge; a Sabah pin still lands
        well inside it. Favourites need the same view filter the districts get. */
     if (!inView([f.lo, f.la, f.lo, f.la])) return;
+    var key = f.la.toFixed(5) + "," + f.lo.toFixed(5);
+    var mates = coincident(key);
+    var anyStar = mates.some(function (m) { return m.st; });
+    if (!PINS && !anyStar) return;            /* starred farms stay pinned */
+    if (seenPt[key]) return;                  /* one dot per place */
+    seenPt[key] = 1;
     var r = { fav:f };
     var q = proj(r.fav.lo, r.fav.la);
     if (q[0] < 4 || q[0] > W-4 || q[1] < HEAD || q[1] > HEAD+MAP) return;
     var wetPt = RADAR ? bandAtPoint(r.fav.la, r.fav.lo) > 0 : false;
-    g.appendChild(el("circle", { cx:q[0], cy:q[1], r:3.6, fill:wetPt?"#ffffff":"#101014",
+    if (anyStar) {
+      /* Deferred, not drawn here: a dot for a farm later in the list would
+         paint straight over it. Stars go down after every plain dot. */
+      starred.push({ f:mates.filter(function (m) { return m.st; })[0] || f, q:q,
+                     extra:mates.length - 1, wet:wetPt });
+      return;
+    }
+    g.appendChild(el("circle", { cx:q[0], cy:q[1], r:3.6,
+      fill:wetPt?"#ffffff":"#101014",
       stroke:wetPt?"#101014":"#ffffff", "stroke-width":1.2 }));
   });
+
+  /* A gold ring is invisible among a hundred dots, so a starred farm is NAMED
+     on the map. That is the whole point of the star: this is the one a farmer
+     is looking for. Labels are drawn last so nothing paints over them, with a
+     white halo so they hold up against any district fill. */
+  /* An actual star, not a ring — it has to be findable at a glance among a
+     hundred plain dots, and it is what the user asked for by name. */
+  starred.forEach(function (o) {
+    g.appendChild(el("path", { d:starPath(o.q[0], o.q[1], 9.5, 4.2),
+      fill:"#f5c23a", stroke:"#101014", "stroke-width":1.3,
+      "stroke-linejoin":"round" }));
+    if (o.wet) {
+      g.appendChild(el("circle", { cx:o.q[0], cy:o.q[1], r:2.6, fill:"#101014" }));
+    }
+  });
+
+  starred.sort(function (a, b) { return a.q[1] - b.q[1]; });
+  var placed = [];
+  starred.forEach(function (o) {
+    var name = shortFarm(o.f.n) + (o.extra ? " +" + o.extra : "");
+    var wpx = name.length * 5.9 + 10;
+    var right = o.q[0] + wpx + 12 < W - 8;
+    var tx = right ? o.q[0] + 10 : o.q[0] - 10;
+    var ty = o.q[1] + 3.6;
+    /* nudge down until this label clears the ones already placed */
+    for (var guard = 0; guard < 14; guard++) {
+      var clash = placed.some(function (pz) {
+        return Math.abs(pz.y - ty) < 11 && Math.abs(pz.x - tx) < (wpx + pz.w) * 0.5;
+      });
+      if (!clash) break;
+      ty += 11;
+    }
+    placed.push({ x:tx, y:ty, w:wpx });
+    var t = el("text", { x:tx, y:ty, "font-size":10.5, "font-weight":700,
+      "text-anchor": right ? "start" : "end", fill:"#101014",
+      stroke:"#ffffff", "stroke-width":3, "paint-order":"stroke" });
+    t.textContent = name;
+    g.appendChild(t);
+  });
+
+  /* Bottom-right of the map: the forecast, kept visually apart from the
+     observed figures and always carrying the word "forecast". */
+  var sw = stopWord();
+  if (sw) {
+    var sy = HEAD + MAP - 8;
+    var st1 = el("text", { x:W - 22, y:sy, "font-size":12, "text-anchor":"end",
+      fill:sw.dim ? "#8a8e9e" : "#101014", "font-weight":sw.dim ? 400 : 700 });
+    st1.textContent = sw.t;
+    svg.appendChild(st1);
+    var st2 = el("text", { x:W - 22, y:sy + 14, "font-size":10,
+      "text-anchor":"end", fill:"#8a8e9e" });
+    st2.textContent = T("stopNote")
+      + (STOP.n ? "  \u00b7  " + STOP.n + " " + T(STOP.src === "fav" ? "srcFav" : "srcDist") : "")
+      + "  \u00b7  ECMWF IFS 9km"
+      + (STOP.at ? "  \u00b7  " + T("stopFrom") + " " + mytClock(STOP.at) + " MYT" : "");
+    svg.appendChild(st2);
+  }
 
   /* ── footer ── */
   var fy = HEAD + MAP + 14;
@@ -1879,13 +2545,17 @@ function drawBulletin() {
     ndl.textContent = T("noData") + " (" + gapN + ")"; svg.appendChild(ndl);
   }
 
-  /* The only disclaimer that travels with the image. Says where authoritative
-     warnings live, which is more use to a farmer than saying what this isn't. */
-  var off = el("text", { x:W - 22, y:fy + 40 + footLines.length * 19 + 8,
-    "font-size":10.5, "text-anchor":"end", fill:"#8a8e9e" });
-  off.textContent = T("official");
-  svg.appendChild(off);
-
+  if (offs) {
+    var ot = el("text", { x:22, y:fy + 40 + footLines.length * 19 + 6,
+      "font-size":12, fill:"#5b6076" });
+    var ob = el("tspan", { "font-weight":700 });
+    ob.textContent = T("offshore") + " ";
+    ot.appendChild(ob);
+    var oc = el("tspan", {});
+    oc.textContent = offs;
+    ot.appendChild(oc);
+    svg.appendChild(ot);
+  }
   footLines.forEach(function (line, i) {
     var t = el("text", { x:22, y:fy + 40 + i*19, "font-size":13.5, fill:"#101014" });
     line.forEach(function (seg) {
@@ -1914,7 +2584,16 @@ function buildFootLines(roll, maxW) {
   }
   var lines = [[]], cur = 0;
   segs.forEach(function (seg) {
-    var words = seg.t.split(/(?<=[ ,•(])/), buf = "";
+    /* split AFTER any of space/comma/bullet/paren, keeping the delimiter on
+       the preceding chunk — same as the lookbehind split this replaces, which
+       was a parse error (a dead app, not a fallback) on WebKit < iOS 16.4 */
+    var words = [], acc2 = "";
+    for (var wi = 0; wi < seg.t.length; wi++) {
+      acc2 += seg.t.charAt(wi);
+      if (" ,\u2022(".indexOf(seg.t.charAt(wi)) >= 0) { words.push(acc2); acc2 = ""; }
+    }
+    if (acc2) words.push(acc2);
+    var buf = "";
     words.forEach(function (word) {
       var ww = w(word, seg.b);
       if (cur + ww > maxW && buf.trim()) {
@@ -1932,40 +2611,99 @@ function render() {
   drawBulletin();
   var host = document.getElementById("roster");
   host.innerHTML = "";
-  if (!FAVS.length) { host.innerHTML = '<div class="empty">' + T("noFav") + '</div>'; return; }
+  if (!liveFavs().length) { host.innerHTML = '<div class="empty">' + T("noFav") + '</div>'; return; }
 
-  var rows = FAVS.map(function (f) {
-    return { fav:f, dist:districtAt(f.lo, f.la), rb:RADAR ? bandAtPoint(f.la, f.lo) : null };
+  var wetD = wetDistricts();
+  var rows = liveFavs().map(function (f) {
+    var dd = districtAt(f.lo, f.la);
+    var pi = RADAR ? pointInfo(f.la, f.lo) : null;
+    /* If the farm itself reads dry but its district is wet, say so rather than
+       leaving the roster flatly contradicting the shaded map. */
+    return { fav:f, dist:dd, pi:pi,
+             rb:pi ? (pi.seen ? pi.band : -1) : null,
+             dw:dd ? wetD[dd.id] : null };
   });
+  /* Every seed is a favourite, so "favourite" no longer distinguishes anything.
+     The star marks the ones being watched today — they get their own section at
+     the top and are lifted out of the state list, not repeated in both. */
+  var groups = [];
+  var starRows = rows.filter(function (r) { return r.fav.st; });
+  if (starRows.length) {
+    groups.push({ key:"\u2605", label:T("starred"), rows:starRows, star:true });
+  }
   var byState = {};
   rows.forEach(function (r) {
+    if (r.fav.st) return;
     var s2 = r.dist ? r.dist.state : "\u2014";
     (byState[s2] = byState[s2] || []).push(r);
   });
   Object.keys(byState).sort().forEach(function (s2) {
-    var wrap = document.createElement("div"); wrap.className = "state";
-    var wetN = byState[s2].filter(function (r) { return r.rb > 0; }).length;
-    wrap.innerHTML = "<h3>" + stateName(s2) + " <em>" + wetN + "/" + byState[s2].length + "</em></h3>";
-    byState[s2].sort(function (a, b) { return (b.rb || 0) - (a.rb || 0); }).forEach(function (r) {
+    groups.push({ key:s2, label:stateName(s2), rows:byState[s2] });
+  });
+
+  groups.forEach(function (grp) {
+    var wrap = document.createElement("div");
+    wrap.className = "state" + (grp.star ? " starred" : "");
+    var wetN = grp.rows.filter(function (r) { return r.rb > 0; }).length;
+    /* 114 seeds is a scroll, not a list. Every launch starts with the state
+       groups collapsed; a group opens when TODAY'S paste puts rain at one of
+       its farms or in one of their districts, and the starred watch list is
+       always open. A group toggled by hand keeps that choice for the session. */
+    var rainy = grp.rows.some(function (r) { return r.rb > 0 || (r.rb === 0 && r.dw); });
+    var pref = ROSTER_OPEN[grp.key];
+    var open = pref === undefined ? (grp.star || rainy) : !!pref;
+    wrap.className += open ? " open" : "";
+    wrap.innerHTML = "<h3><span class='caret'>\u203a</span>" +
+      (grp.star ? "\u2b50 " : "") + grp.label +
+      " <em>" + wetN + "/" + grp.rows.length + "</em></h3>" +
+      "<div class='grows'></div>";
+    var body = wrap.querySelector(".grows");
+    wrap.querySelector("h3").onclick = function () {
+      ROSTER_OPEN[grp.key] = !wrap.classList.contains("open");
+      wrap.classList.toggle("open");
+    };
+    grp.rows.sort(function (a, b) {
+      return (b.rb || 0) - (a.rb || 0) ||
+             (a.dist && b.dist ? a.dist.name.localeCompare(b.dist.name) : 0);
+    }).forEach(function (r) {
       var on = r.rb > 0;
-      var chip = (r.rb == null || r.rb < 1) ? "#2a2f4a" : LEVELS[r.rb].fill;
+      var near = !on && r.rb === 0 && r.dw;     /* dry here, raining in the district */
+      var chip = on ? LEVELS[r.rb].fill : near ? LEVELS[r.dw.band].fill : "#2a2f4a";
       var d = document.createElement("div");
-      d.className = "row" + (on ? " on" : "");
+      d.className = "row" + (on ? " on" : near ? " near" : "");
       d.innerHTML =
         '<span class="chip" style="background:' + chip + '"></span>' +
         '<span class="nm"><b></b><span></span></span>' +
         '<span class="tag ' + (on ? "rain" : "") + '"></span>';
-      d.querySelector(".nm b").textContent = r.fav.n;
+      d.querySelector(".nm b").textContent = (r.fav.st ? "\u2b50 " : "") + r.fav.n;
       d.querySelector(".nm span").textContent =
-        (r.dist ? r.dist.name : T("unassigned")) + "  \u00b7  "
+        (r.dist ? distName(r.dist) + (grp.star ? ", " + stateName(r.dist.state) : "")
+                : T("unassigned"))
+        + (r.fav.g ? "  \u00b7  " + r.fav.g : "") + "  \u00b7  "
         + r.fav.la.toFixed(3) + ", " + r.fav.lo.toFixed(3);
-      d.querySelector(".tag").textContent =
-        r.rb == null ? "\u2014" : r.rb < 0 ? T("noData") : T("lv")[r.rb];
-      wrap.appendChild(d);
+      var tag = d.querySelector(".tag");
+      if (r.rb == null) tag.textContent = "\u2014";
+      else if (r.rb < 0) tag.textContent = T("noData");
+      else if (on) {
+        tag.textContent = T("lv")[r.rb]
+          + (r.pi.mm != null ? "  " + (stepCapped(r.pi.step, r.pi.pal) ? "\u2265" : "")
+             + fmtRate(r.pi.mm) + " mm/h" : "");
+      } else if (near) {
+        tag.textContent = T("inDist") + " " + T("lv")[r.dw.band]
+          + (r.dw.mm != null ? " " + fmtRate(r.dw.mm) + " mm/h" : "");
+      } else tag.textContent = T("lv")[0];
+      body.appendChild(d);
     });
     host.appendChild(wrap);
   });
   document.getElementById("sourceNote").textContent = T("source");
+  /* Which copy am I looking at? file:// for quick iteration, Pages for the
+     phone — without this it is easy to test a build you already replaced. */
+  var bn = document.getElementById("buildNote");
+  bn.textContent = CACHE_VERSION + "  \u00b7  "
+    + (location.protocol === "file:" ? "local file"
+       : location.hostname || "local server")
+    + (("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "  \u00b7  SW" : "");
 }
 
 /* ══ share ══ */
@@ -1974,7 +2712,7 @@ function bulletinText() {
      where their own plot sits from the other apps, so listing every favourite
      just makes the message too long to read on a phone. */
   var roll = rollCall(), L = [];
-  L.push(LANG === "zh" ? "\u3010\u96e8\u60c5\u901a\u62a5\u3011" : "[RAIN BULLETIN]");
+  L.push(LANG === "zh" ? "\u96e8\u60c5\u901a\u62a5" : "RAIN BULLETIN");
   if (RADAR) L.push((LANG === "zh" ? "\u96f7\u8fbe\u8d34\u56fe\uff1a" : "Radar image: ") + RADAR.label);
   L.push("");
 
@@ -1990,10 +2728,14 @@ function bulletinText() {
     if (roll.more) L.push("\u2026 +" + roll.more + " " + T("more"));
   }
 
+  var sw2 = stopWord();
+  if (sw2 && !sw2.dim) { L.push(""); L.push(sw2.t + "  (" + T("stopNote") + ")"); }
+  var offs = offshoreLine();
+  if (offs) { L.push(""); L.push(T("offshore") + " " + offs); }
   L.push("");
   L.push(LANG === "zh"
-    ? "\u203b \u6765\u81ea\u96f7\u8fbe\u8d34\u56fe\uff08\u5b9e\u6d4b\uff09\uff1b\u5b98\u65b9\u8b66\u62a5\u4ee5\u6c14\u8c61\u5c40\u4e3a\u51c6\u3002"
-    : "* From a radar image (observed). Official warnings: MET Malaysia.");
+    ? "\u203b \u6765\u81ea\u96f7\u8fbe\u8d34\u56fe\uff08\u5b9e\u6d4b\uff09\u3002"
+    : "* From a radar image (observed).");
   return L.join("\n");
 }
 function toast(m) {
@@ -2025,7 +2767,52 @@ function pngName() {
        + "-rainbulletin-" + (VIEW_SLUG[VIEW] || VIEW) + ".png";
 }
 
-function savePng() {
+/* iOS Safari ignores <a download> entirely — the tap produced a toast and no
+   file. Web Share is the mechanism that works there, and it opens the share
+   sheet, which is what this bulletin is for anyway: straight into WhatsApp
+   rather than via the photo album. Desktop keeps the plain download. */
+function canSharePng() {
+  if (!navigator.canShare || !navigator.share) return false;
+  try { return navigator.canShare({ files:[new File([""], "a.png", { type:"image/png" })] }); }
+  catch (e) { return false; }
+}
+
+function deliverPng(blob, name) {
+  var file = null;
+  try { file = new File([blob], name, { type:"image/png" }); } catch (e) { file = null; }
+
+  if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
+    navigator.share({ files:[file], title:T("brandZh") })
+      .then(function () { toast(T("shared")); })
+      .catch(function (err) {
+        if (err && err.name === "AbortError") return;   /* user closed the sheet */
+        downloadPng(blob, name);
+      });
+    return;
+  }
+  downloadPng(blob, name);
+}
+
+function downloadPng(blob, name) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  if ("download" in a) {
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 6000);
+    toast(T("saved"));
+    return;
+  }
+  /* last resort — an iOS build with neither share nor download: show the image
+     so it can be long-pressed and saved by hand */
+  var w = window.open(url, "_blank");
+  toast(w ? T("longPress") : "PNG \u00d7");
+  setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+}
+
+/* Render the bulletin SVG to a PNG blob; cb(blob), null on failure. Split out
+   of savePng so the WhatsApp share reuses the exact same rasterisation. */
+function renderPng(cb) {
   var svg = document.getElementById("bulletin");
   var vb = svg.getAttribute("viewBox").split(" ").map(Number);
   var clone = svg.cloneNode(true);
@@ -2042,35 +2829,181 @@ function savePng() {
     var x = c.getContext("2d");
     x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
     x.drawImage(img, 0, 0, c.width, c.height);
-    c.toBlob(function (b) {
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(b);
-      a.download = pngName();
-      a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
-      toast(T("saved"));
-    }, "image/png");
+    c.toBlob(function (b) { cb(b || null); }, "image/png");
   };
-  img.onerror = function () { toast("PNG ×"); };
+  img.onerror = function () { toast("PNG ×"); cb(null); };
   img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(src);
+}
+function savePng() {
+  renderPng(function (b) { if (b) deliverPng(b, pngName()); });
+}
+
+/* ============ WhatsApp share ============
+   Same dispatch that already works in WeatherNext:
+   mobile — navigator.share({files, text}) hands both to WhatsApp's editable
+   preview, so one Send delivers map and caption together. Closing the sheet
+   (AbortError) is the user's answer, not a failure.
+   desktop / fallback — WhatsApp opens with the text pre-filled, the PNG
+   downloads for attaching, and the text sits on the clipboard either way,
+   because some WhatsApp builds drop the caption when a file is attached. */
+function copyPlain(s) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(s).catch(function () {});
+      return;
+    }
+  } catch (e) {}
+  try {
+    var ta = document.createElement("textarea");
+    ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  } catch (e) {}
+}
+
+/* The detail variant appends the favourite locations that are raining right
+   now, grouped by state, with the intensity the current palette + Z-R gives.
+   Deliberately richer than the bulletin footer: the footer speaks in states
+   and districts for 3,000 strangers; this list names the farms for the inner
+   circle who know them. */
+function rainRosterText() {
+  if (!RADAR) return "";
+  var byState = {}, seen = {};
+  liveFavs().forEach(function (f) {
+    var pi = pointInfo(f.la, f.lo);
+    if (!pi || !pi.seen || !pi.step) return;
+    var key = f.n + "|" + f.la.toFixed(5) + "," + f.lo.toFixed(5);
+    if (seen[key]) return;              /* grouped duplicates report identical rain */
+    seen[key] = 1;
+    var d = districtAt(f.lo, f.la);
+    var st = d ? d.state : "\u2014";
+    (byState[st] = byState[st] || []).push({ f:f, pi:pi, d:d });
+  });
+  var states = Object.keys(byState).sort();
+  if (!states.length) return "";
+  var L = [T("waHead")];
+  states.forEach(function (st) {
+    L.push(stateName(st));
+    byState[st]
+      .sort(function (a, b) { return (b.pi.band - a.pi.band) || (b.pi.step - a.pi.step); })
+      .forEach(function (o) {
+        var line = "\u2022 " + o.f.n;
+        if (o.d) line += " (" + distName(o.d) + ")";
+        line += " \u2014 " + T("lv")[o.pi.band];
+        if (RADAR.rates && o.pi.mm != null) {
+          line += " " + (stepCapped(o.pi.step, o.pi.pal) ? "\u2265" : "") + fmtRate(o.pi.mm) + " mm/h";
+        }
+        L.push(line);
+      });
+  });
+  return L.join("\n");
+}
+
+function waFallback(blob, name, text) {
+  var isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  var waUrl = (isMobile ? "https://wa.me/?text=" : "https://web.whatsapp.com/send?text=")
+            + encodeURIComponent(text);
+  var wa = null;
+  try { wa = window.open(waUrl, "_blank", "noopener,noreferrer"); } catch (e) { wa = null; }
+  downloadPng(blob, name);
+  toast(wa ? T("waReady") : T("waBlocked"));
+}
+
+function shareWhatsApp(detailed) {
+  var text = bulletinText();
+  if (detailed) {
+    var rr = rainRosterText();
+    if (rr) text += "\n\n" + rr;
+  }
+  copyPlain(text);                      /* inside the tap gesture, before any async */
+  renderPng(function (blob) {
+    if (!blob) return;                  /* renderPng already toasted */
+    var name = pngName(), file = null;
+    try { file = new File([blob], name, { type:"image/png" }); } catch (e) { file = null; }
+    if (file && navigator.share && navigator.canShare && navigator.canShare({ files:[file] })) {
+      navigator.share({ files:[file], title:T("brandZh"), text:text })
+        .then(function () { toast(T("shared")); })
+        .catch(function (err) {
+          if (err && err.name === "AbortError") return;   /* user closed the sheet */
+          waFallback(blob, name, text);
+        });
+      return;
+    }
+    waFallback(blob, name, text);
+  });
 }
 
 /* ══ favourites editor ══ */
 function paintList() {
   var h = document.getElementById("fList"); h.innerHTML = "";
-  FAVS.forEach(function (f, i) {
+  /* Starred farms stay pinned even when the dots are hidden, and sort to the
+     top of the roster — with 114 seeds, marking the handful that matter today
+     is the difference between a useful list and a wall. Scrolling 114 rows to
+     find your own plot is not a workflow, so the list is searchable and the
+     starred ones float to the top. */
+  var qEl = document.getElementById("fFind");
+  var q = (qEl && qEl.value || "").trim().toLowerCase();
+  var idx = FAVS.map(function (f, i) { return { f:f, i:i }; })
+    .filter(function (o) { return !o.f.del; });
+  idx.sort(function (a, b) { return (b.f.st || 0) - (a.f.st || 0) || a.i - b.i; });
+  var nStar = 0;
+  FAVS.forEach(function (f) { if (f.st && !f.del) nStar++; });
+  var shown = 0;
+  idx.forEach(function (o) {
+    var f = o.f, i = o.i;
+    if (q) {
+      var hay = (f.n + " " + (f.g || "")).toLowerCase();
+      var dd = districtAt(f.lo, f.la);
+      if (dd) hay += " " + dd.name.toLowerCase() + " " + (DIST_ZH[dd.name] || "")
+                   + " " + dd.state.toLowerCase() + " " + (STATE_ZH[dd.state] || "");
+      if (hay.indexOf(q) < 0) return;
+    }
+    shown++;
     var d = document.createElement("div"); d.className = "li";
-    d.innerHTML = "<span></span><code>" + f.la.toFixed(4) + ", " + f.lo.toFixed(4) + "</code><button class='x' aria-label='remove'>×</button>";
+    d.innerHTML = "<button class='star' aria-label='star'></button>" +
+      "<span></span><code>" + f.la.toFixed(4) + ", " + f.lo.toFixed(4) +
+      "</code><button class='x' aria-label='remove'>\u00d7</button>";
+    var sb = d.querySelector(".star");
+    sb.textContent = f.st ? "\u2b50" : "\u2606";
+    sb.className = "star" + (f.st ? " on" : "");
+    sb.onclick = function () { f.st = f.st ? 0 : 1; saveFavs(); paintList(); render(); };
     d.querySelector("span").textContent = f.n;
-    d.querySelector(".x").onclick = function () { FAVS.splice(i,1); saveFavs(); paintList(); };
+    d.querySelector(".x").onclick = function () {
+      if (isMine(f)) f.del = 1;               /* recoverable — the user typed it */
+      else FAVS.splice(i, 1);                 /* seeds come back with 还原示范 */
+      saveFavs(); paintList(); render();
+    };
     h.appendChild(d);
   });
+  document.getElementById("fCount").textContent =
+    shown + " / " + liveFavs().length + "   \u2b50 " + nStar;
+
+  /* Recycle bin — only ever holds locations the user added themselves. */
+  var binHost = document.getElementById("fBin");
+  var bin = FAVS.filter(function (f) { return f.del; });
+  binHost.innerHTML = "";
+  document.getElementById("fBinWrap").hidden = !bin.length;
+  if (bin.length) {
+    document.getElementById("fBinHead").textContent = T("deleted") + "  " + bin.length;
+    bin.forEach(function (f) {
+      var d = document.createElement("div"); d.className = "li";
+      d.innerHTML = "<span></span><code>" + f.la.toFixed(4) + ", " + f.lo.toFixed(4) + "</code>" +
+        "<button class='tool' style='padding:3px 8px'>" + T("btnRestore") + "</button>";
+      d.querySelector("span").textContent = f.n;
+      d.querySelector("button").onclick = function () {
+        delete f.del; saveFavs(); paintList(); render();
+      };
+      binHost.appendChild(d);
+    });
+  }
 }
 function addFav() {
   var n = document.getElementById("fName").value.trim();
   var la = parseFloat(document.getElementById("fLat").value);
   var lo = parseFloat(document.getElementById("fLon").value);
   if (!n || !isFinite(la) || !isFinite(lo)) { toast("×"); return; }
-  FAVS.push({ n:n, la:la, lo:lo }); saveFavs(); paintList();
+  FAVS.push({ n:n, la:la, lo:lo, g:"", st:0, u:1 }); saveFavs(); paintList(); render();
   document.getElementById("fName").value = "";
   document.getElementById("fLat").value = ""; document.getElementById("fLon").value = "";
 }
@@ -2081,6 +3014,8 @@ function addFav() {
    ══════════════════════════════════════════════════════════════════ */
 var IMGC = null, IMGX = null, ANCH = [], SHOWCOAST = false, DRAG = false, AUTO = 0;
 var AUTOCAL = null, MANUAL = false, LASTREG = null, RECALLED = null;
+var SHOT_AT = 0;                              /* when the screenshot was taken */
+var TIMEMODE = store.get("timeMode", "shot"); /* "shot" or "paste" */
 
 function runRegistration() {
   if (!IMGC) return;
@@ -2146,7 +3081,12 @@ function enqueueFiles(list) {
   imgs.forEach(function (f, idx) {
     var fr = new FileReader();
     fr.onload = function () {
-      slots[idx] = fr.result;
+      /* A screenshot's lastModified is the moment it was taken, which is the
+         radar frame time to within seconds — better than the wall clock at
+         paste, and it needs no typing. */
+      var shot = f.lastModified || 0;
+      if (!shot || Math.abs(Date.now() - shot) > 36 * 3600 * 1000) shot = 0;
+      slots[idx] = { src:fr.result, shot:shot };
       if (--pending === 0) {
         QUEUE = QUEUE.concat(slots.filter(Boolean));
         BATCH = QUEUE.length > 1;
@@ -2158,7 +3098,9 @@ function enqueueFiles(list) {
 }
 function queueNext() {
   if (!QUEUE.length) { BATCH = false; return; }
-  loadImage(QUEUE.shift());
+  var it = QUEUE.shift();
+  SHOT_AT = it.shot || 0;
+  loadImage(it.src);
 }
 
 function loadImage(src) {
@@ -2172,6 +3114,7 @@ function loadImage(src) {
     document.getElementById("calDrop").hidden = true;
     document.getElementById("calWork").hidden = false;
     SHOWCOAST = false;
+    paintTimeBar();
     drawCal();
     var t = document.getElementById("calFitTxt");
     t.textContent = T("scanning"); t.style.color = "var(--amber)";
@@ -2309,7 +3252,7 @@ function paintAnchors() {
   } else {
     var bad = cal.rmsKm > 12, extra = "";
     if (IMGX) {
-      var sc = scoreCal(cal, edgeMap(IMGX, IMGC.width, IMGC.height));
+      var sc = scoreCal(cal);
       extra = "  \u00b7  " + T("fitCoast") + " " + sc.r.toFixed(1) + "\u00d7";
       if (sc.r && sc.r < 1.8) bad = true;
     }
@@ -2321,8 +3264,11 @@ function paintAnchors() {
   document.getElementById("calApply").disabled = !cal;
 }
 
-function reprojectImage(cal, canvas, ctx, basemap, palette) {
-  BASEMAP = basemap || null; PALETTE = palette || null; resetBandCache();
+function reprojectImage(cal, canvas, ctx, basemap, palette, fills) {
+  BASEMAP = basemap || null; PALETTE = palette || null;
+  BASEFILLS = fills || [];    /* the fills learned from THIS image, not the last one */
+  resetBandCache();
+
   /* bulk pass runs on a capped copy — the grid is 2 km, so more pixels buy nothing */
   var f = Math.min(1, 2000 / Math.max(canvas.width, canvas.height));
   var wc, wx;
@@ -2333,7 +3279,10 @@ function reprojectImage(cal, canvas, ctx, basemap, palette) {
     wx.drawImage(canvas, 0, 0, wc.width, wc.height);
   } else { wc = canvas; wx = ctx; }
   var data = wx.getImageData(0, 0, wc.width, wc.height).data;
-  return reproject(data, wc.width, wc.height, { A:cal.A * f, Bx:cal.Bx * f, By:cal.By * f });
+  var sc = { A:cal.A * f, Bx:cal.Bx * f, By:cal.By * f };
+  var cells = reproject(data, wc.width, wc.height, sc);
+  cells.offshore = offshoreScan(sc, data, wc.width, wc.height);
+  return cells;
 }
 
 function rememberCal(region) {
@@ -2373,14 +3322,48 @@ function recallCal(ctx, iw, ih) {
   return best;
 }
 
+/* What the user types in 图内时间. Accepts a clock time, or "5m" / "-5" meaning
+   "five minutes ago", because that is how Windy states it — the pill reads
+   "5:24 - 5m ago". Left blank it falls back to the wall clock, which is NOT the
+   radar time, so that case is marked with a tilde rather than passed off as
+   the moment of the scan. */
+/* No typing. Either the moment the screenshot was taken — which the file
+   carries, and which is the radar frame time to within seconds — or the moment
+   it was pasted. Clipboard images often carry no usable timestamp, and then
+   only the paste time is offered, marked with a tilde so it is never mistaken
+   for the moment of the scan. */
+function layerLabel() {
+  if (TIMEMODE === "shot" && SHOT_AT) return fmt(SHOT_AT);
+  return "~" + fmt(Date.now());
+}
+function paintTimeBar() {
+  var bar = document.getElementById("calTimeBar");
+  if (!bar) return;
+  /* no timestamp on this image: fall back to paste time for THIS image only,
+     without overwriting the stored preference for the next one */
+  var mode = SHOT_AT ? TIMEMODE : "paste";
+  bar.innerHTML = "";
+  var opts = [];
+  if (SHOT_AT) opts.push({ k:"shot", t:T("tShot") + " " + fmt(SHOT_AT) });
+  opts.push({ k:"paste", t:T("tPaste") + " ~" + fmt(Date.now()) });
+  opts.forEach(function (o) {
+    var b = document.createElement("button");
+    b.className = "tool"; b.textContent = o.t;
+    b.setAttribute("aria-pressed", mode === o.k);
+    b.onclick = function () {
+      TIMEMODE = o.k; store.set("timeMode", TIMEMODE); paintTimeBar();
+    };
+    bar.appendChild(b);
+  });
+}
 function addLayer() {
   var cal = currentCal();
   if (!cal || !IMGC) return;
   var basemap = BASEMAP;                       /* learned during registration */
-  var regionGuess = null;
+  var fills = BASEFILLS.slice();               /* travels with the basemap */
   var det = detectPalette(IMGX, IMGC.width, IMGC.height);
   var palette = det ? det.pal : null;
-  var cells = reprojectImage(cal, IMGC, IMGX, basemap, palette);
+  var cells = reprojectImage(cal, IMGC, IMGX, basemap, palette, fills);
   var region = regionOf(cells);
 
   /* One layer per region PER SOURCE. A fresh Peninsular shot from the same app
@@ -2394,20 +3377,22 @@ function addLayer() {
   });
   LAYERS.push({ cal:cal, ctx:IMGX, canvas:IMGC, iw:IMGC.width, ih:IMGC.height,
                 cells:cells, region:region, at:Date.now(), basemap:basemap, palette:palette,
-                label:(document.getElementById("calTimeIn").value.trim() || fmt(Date.now())) });
+                fills:fills, label:layerLabel() });
 
   rememberCal(region);
   rebuildRadar();
+  STOP.fails = 0;                     /* a fresh paste earns a fresh forecast attempt */
+  try { fetchStop(false); } catch (e) { /* the bulletin stands without it */ }
   IMGC = null; IMGX = null; ANCH = []; AUTO = 0; AUTOCAL = null; RECALLED = null; showManual(false);
   document.getElementById("calDrop").hidden = false;
   document.getElementById("calWork").hidden = true;
-  if (!QUEUE.length) document.getElementById("calTimeIn").value = "";
+  if (!QUEUE.length) SHOT_AT = 0;
   paintLayers();
   render(); toast(T("calOk") + " \u00b7 " + regionLabel(region));
 }
 
 function recomputeAll() {
-  LAYERS.forEach(function (L) { L.cells = reprojectImage(L.cal, L.canvas, L.ctx, L.basemap, L.palette); });
+  LAYERS.forEach(function (L) { L.cells = reprojectImage(L.cal, L.canvas, L.ctx, L.basemap, L.palette, L.fills); });
   rebuildRadar(); render();
 }
 
@@ -2490,8 +3475,11 @@ function crossPairs() {
   return out;
 }
 
-function zrPairs() { return store.get("zrPairs", []); }
-function setZrPairs(v) { store.set("zrPairs", v); }
+var ZRSEL = store.get("zrSel", "Windy");
+var ZR_OPEN = false;        /* tile grid expanded? session-only, like the roster */
+function allPairs() { return store.get("zrPairs", {}); }
+function zrPairs() { var a = allPairs(); return a[ZRSEL] || []; }
+function setZrPairs(v) { var a = allPairs(); a[ZRSEL] = v; store.set("zrPairs", a); }
 
 function fitLine(P) {
   var n = P.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
@@ -2549,13 +3537,60 @@ function fitZR() {
   return { a:Math.pow(10, la), b:b, n:n, r2:r2, ok:ok };
 }
 
+function knownSources() {
+  var out = [];
+  PALETTES.forEach(function (p) { out.push(p.name); });
+  Object.keys(ZRS).forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+  return out;
+}
 function paintZR() {
+  var loaded = {};
+  LAYERS.forEach(function (L) { if (L.palette) loaded[L.palette.name] = 1; });
+  if (knownSources().indexOf(ZRSEL) < 0) ZRSEL = knownSources()[0];
+  /* header shows the current source; tapping it expands the choices inline */
+  var head = document.getElementById("zrHead");
+  head.innerHTML = "";
+  var hn = document.createElement("span");
+  hn.textContent = ZRSEL;
+  head.appendChild(hn);
+  if (loaded[ZRSEL]) {
+    var hb = document.createElement("span");
+    hb.className = "on"; hb.textContent = T("srcOn");
+    head.appendChild(hb);
+  }
+  var car = document.createElement("span");
+  car.className = "caret"; car.textContent = "\u203a";
+  head.appendChild(car);
+  var tiles = document.getElementById("zrTiles");
+  tiles.innerHTML = "";
+  knownSources().forEach(function (k) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "srctile";
+    b.setAttribute("aria-pressed", k === ZRSEL ? "true" : "false");
+    var nm = document.createElement("span");
+    nm.textContent = k;
+    b.appendChild(nm);
+    if (loaded[k]) {
+      var bd = document.createElement("span");
+      bd.className = "on"; bd.textContent = T("srcOn");
+      b.appendChild(bd);
+    }
+    b.onclick = function () {
+      ZRSEL = k; store.set("zrSel", ZRSEL);
+      ZR_OPEN = false;                 /* choice made — fold the tiles away */
+      paintZR();
+    };
+    tiles.appendChild(b);
+  });
+  syncSrcOpen();
+  ZR = { a:zrFor(ZRSEL).a, b:zrFor(ZRSEL).b, cap:zrFor(ZRSEL).cap };
+
   document.getElementById("zrA").value = ZR.a.toFixed(1);
   document.getElementById("zrB").value = ZR.b.toFixed(2);
   document.getElementById("zrCap").value = ZR.cap;
   var now = document.getElementById("zrNow");
   var eg = [27.5, 37.5, 47.5].map(function (dz) {
-    return dz + "dBZ\u2192" + fmtRate(dbzToRate(dz));
+    return dz + "dBZ\u2192" + fmtRate(dbzToRate(dz, undefined));
   }).join("   ");
   now.textContent = "Z = " + ZR.a.toFixed(0) + "\u00b7R^" + ZR.b.toFixed(2)
     + "   \u00b7   " + eg + " mm/h";
@@ -2567,7 +3602,8 @@ function paintZR() {
     btn.className = "tool"; btn.textContent = pz.name;
     btn.setAttribute("aria-pressed", Math.abs(ZR.a - pz.a) < 1 && Math.abs(ZR.b - pz.b) < 0.01);
     btn.onclick = function () {
-      ZR.a = pz.a; ZR.b = pz.b; saveZR(); paintZR(); render();
+      ZRS[ZRSEL] = { a:pz.a, b:pz.b, cap:ZR.cap };
+      saveZR(); paintZR(); render();
     };
     bar.appendChild(btn);
   });
@@ -2600,8 +3636,269 @@ function paintZR() {
   document.getElementById("zrDoFit").disabled = !(f && f.ok);
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   MAP PROBE
+   A farmer's first question is "which one is mine". The SVG <title> tooltip
+   answers it, but only after a hover delay and not at all under a finger, so
+   the reading is mirrored into a line under the card that updates live and
+   responds to touch.
+   ══════════════════════════════════════════════════════════════════ */
+function probeAt(target) {
+  var el2 = target;
+  while (el2 && el2 !== document && !(el2.getAttribute && el2.getAttribute("data-d"))) {
+    el2 = el2.parentNode;
+  }
+  if (!el2 || !el2.getAttribute) return null;
+  var id = +el2.getAttribute("data-d");
+  return DIST[id] ? id : null;
+}
+function showProbe(id) {
+  var box = document.getElementById("probe");
+  if (id == null) {
+    box.innerHTML = "<span>" + T("probeHint") + "</span>";
+    return;
+  }
+  var D = DIST[id], w = wetDistricts()[id], nd = noDataDistricts();
+  var h = "<b>" + distName(D) + "</b> <span class='st'>" + stateName(D.state) + "</span>";
+  if (w) {
+    h += "  <span class='rn'>" + T("lv")[w.band]
+       + (w.mm != null ? "  " + (stepCapped(w.step, w.pal) ? "\u2265" : "") + fmtRate(w.mm) + " mm/h" : "")
+       + "</span>";
+    if (w.mm != null) h += " <span class='st'>" + w.dbz + " dBZ</span>";
+    h += " <span class='st'>" + Math.round(w.cov * 100) + "% " + T("covered") + "</span>";
+  } else if (nd[id]) {
+    h += "  <span class='st'>" + T("noData") + "</span>";
+  } else if (RADAR) {
+    h += "  <span class='st'>" + T("lv")[0] + "</span>";
+  }
+  box.innerHTML = h;
+}
+(function () {
+  var svg = document.getElementById("bulletin"), last = null;
+  function handle(e) {
+    var t = e.target;
+    if (e.touches && e.touches.length) {
+      t = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    }
+    var id = probeAt(t);
+    if (id === last) return;
+    last = id; showProbe(id);
+  }
+  svg.addEventListener("mousemove", handle);
+  svg.addEventListener("touchstart", handle, { passive:true });
+  svg.addEventListener("touchmove", handle, { passive:true });
+  svg.addEventListener("mouseleave", function () { last = null; showProbe(null); });
+  /* tap the forecast corner to retry or refresh it */
+  svg.addEventListener("click", function (e) {
+    var r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    var fx = (e.clientX - r.left) / r.width, fyr = (e.clientY - r.top) / r.height;
+    if (fx > 0.62 && fyr > 0.55 && fyr < 0.86 && RADAR) fetchStop(true);
+  });
+})();
+
+/* Files handed to the app through the system share sheet. The service worker
+   parked them in a cache and bounced us here; pick them up, hand them to the
+   normal intake, and tidy the URL so a reload does not re-import. Android and
+   desktop Chrome only — iOS has no share_target — so this is a no-op there. */
+async function collectShared() {
+  if (location.search.indexOf("shared=1") < 0) return;
+  try {
+    var cache = await caches.open("rbmy-share");
+    var head = await cache.match("./__shared/count");
+    var n = head ? parseInt(await head.text(), 10) : 0;
+    var files = [];
+    for (var i = 0; i < n; i++) {
+      var res = await cache.match("./__shared/" + i);
+      if (!res) continue;
+      var blob = await res.blob();
+      var shot = +(res.headers.get("x-shot") || 0);
+      files.push(new File([blob], "shared-" + i + ".png",
+        { type:blob.type || "image/png", lastModified:shot || Date.now() }));
+    }
+    var keys = await cache.keys();
+    await Promise.all(keys.map(function (k) { return cache.delete(k); }));
+    if (files.length) {
+      paintAnchorSel();
+      var dlg = document.getElementById("cal");
+      if (!dlg.open) dlg.showModal();
+      enqueueFiles(files);
+    }
+  } catch (e) { /* nothing shared, or no cache access */ }
+  history.replaceState(null, "", location.pathname);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   WHEN WILL IT STOP
+   The one thing a farmer asks that radar alone cannot answer. This is the
+   only network call the app makes, and it is a FORECAST — everything else on
+   the card is observed radar, so it is labelled separately and never merged
+   into the rain figures.
+
+   Rate limiting, in layers, because the set of raining farms changes every
+   time a screenshot is pasted:
+     1. one HTTP call, however many farms — Open-Meteo takes up to 1000
+        coordinate pairs in a single request
+     2. coordinates rounded to ~1 km and de-duplicated before asking
+     3. answers cached against that coordinate set for 15 minutes
+     4. a hard floor of 4 minutes between calls whatever else happens
+     5. a self-imposed daily budget of 200 calls against a limit of 10,000
+     6. three consecutive failures and it stops trying until the next paste
+     7. never on a timer — only when a layer is added or the line is tapped
+   ══════════════════════════════════════════════════════════════════ */
+var OM_URL = "https://api.open-meteo.com/v1/forecast";
+var OM_TTL = 15 * 60 * 1000;        /* an answer stays good this long */
+var OM_FLOOR = 4 * 60 * 1000;       /* never call more often than this */
+var OM_BUDGET = 200;                /* per day, against a 10,000 limit */
+var OM_MAXPTS = 60;
+
+var STOP = { state:"idle", range:null, at:0, key:"", fails:0, n:0, src:"dist" };
+
+function omBudget() {
+  var today = new Date().toISOString().slice(0, 10);
+  var b = store.get("omBudget", { d:"", n:0 });
+  if (b.d !== today) b = { d:today, n:0 };
+  return b;
+}
+function omSpend() {
+  var b = omBudget(); b.n++; store.set("omBudget", b); return b.n;
+}
+
+/* Where to ask. Wet FARMS first, since those are the people who care — but on
+   a typical bulletin none of the 114 happen to sit under the rain, so fall
+   back to the wet districts themselves, which is what the map is showing.
+   Rounded to ~1 km and de-duplicated so the cache key is stable. */
+function stopPoints() {
+  if (!RADAR) return [];
+  var seen = {}, out = [];
+  function add(la, lo) {
+    la = Math.round(la * 100) / 100; lo = Math.round(lo * 100) / 100;
+    var k = la + "," + lo;
+    if (seen[k]) return;
+    seen[k] = 1; out.push({ la:la, lo:lo });
+  }
+  liveFavs().forEach(function (f) {
+    var pi = pointInfo(f.la, f.lo);
+    if (pi.seen && pi.step) add(f.la, f.lo);
+  });
+  STOP.src = out.length ? "fav" : "dist";
+  if (!out.length) {
+    var wet = wetDistricts();
+    Object.keys(wet)
+      .sort(function (a, b) { return wet[b].step - wet[a].step; })
+      .forEach(function (k) { add(DIST[k].cen[1], DIST[k].cen[0]); });
+  }
+  return out.slice(0, OM_MAXPTS);
+}
+
+/* Malaysia has one timezone and no daylight saving, so the bulletin is always
+   stamped in MYT regardless of where the phone thinks it is. */
+var MYT = "Asia/Kuala_Lumpur";
+function mytClock(ms) {
+  try {
+    return new Date(ms).toLocaleTimeString("en-GB",
+      { timeZone:MYT, hour:"2-digit", minute:"2-digit", hour12:false });
+  } catch (e) {
+    var d = new Date(ms + 8 * 3600000);        /* MYT is UTC+8, fixed */
+    return String(d.getUTCHours()).padStart(2, "0") + ":"
+         + String(d.getUTCMinutes()).padStart(2, "0");
+  }
+}
+
+/* When precipitation stops. ECMWF reports precipitation as the SUM OVER THE
+   PRECEDING HOUR, so a dry value stamped 14:00 means nothing fell between
+   13:00 and 14:00 — the rain ended somewhere inside that window, and 14:00 is
+   the conservative end of it. Two consecutive dry hours are required so a lull
+   inside a storm is not read as the end of it.
+
+   Times come back as unix seconds; asking for local strings would have them
+   parsed against the device clock, which is wrong the moment the phone is not
+   on Malaysian time. Returns an absolute instant, not a countdown. */
+function dryAt(times, vals) {
+  var now = Date.now();
+  for (var i = 0; i < vals.length - 1; i++) {
+    var t = (+times[i]) * 1000;
+    if (!isFinite(t) || t < now) continue;
+    if ((vals[i] || 0) < 0.1 && (vals[i+1] || 0) < 0.1) return t;
+  }
+  return null;                       /* still raining past the horizon */
+}
+
+function fetchStop(manual) {
+  var pts = stopPoints();
+  if (!pts.length) { STOP.state = "idle"; STOP.range = null; STOP.n = 0; return; }
+  var key = pts.map(function (p) { return p.la + "," + p.lo; }).join(";");
+
+  if (STOP.key === key && STOP.state === "ok" && Date.now() - STOP.at < OM_TTL) return;
+  if (!manual && STOP.state === "loading") return;
+  if (STOP.fails >= 3 && !manual) return;
+  if (!navigator.onLine) { STOP.state = "offline"; drawBulletin(); return; }
+  if (Date.now() - (store.get("omLast", 0)) < OM_FLOOR && !manual) return;
+  if (omBudget().n >= OM_BUDGET) { STOP.state = "budget"; drawBulletin(); return; }
+
+  STOP.state = "loading"; STOP.key = key; STOP.n = pts.length;
+  drawBulletin();
+  store.set("omLast", Date.now());
+  omSpend();
+
+  /* ECMWF IFS HRES at 9 km, named explicitly rather than letting best_match
+     pick. 1-hourly out to 90 hours, which is the finest step any global model
+     offers here — AIFS is 6-hourly and cannot answer this question at all.
+     15-minute data is NOT requested: outside Central Europe and North America
+     Open-Meteo interpolates it from the hourly fields, so it would have been
+     invented precision. */
+  var q = OM_URL
+    + "?latitude=" + pts.map(function (p) { return p.la; }).join(",")
+    + "&longitude=" + pts.map(function (p) { return p.lo; }).join(",")
+    + "&hourly=precipitation&models=ecmwf_ifs&forecast_days=2"
+    + "&timeformat=unixtime&timezone=GMT";
+
+  var ctl = ("AbortController" in window) ? new AbortController() : null;
+  if (ctl) setTimeout(function () { ctl.abort(); }, 12000);
+
+  fetch(q, ctl ? { signal:ctl.signal } : undefined)
+    .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function (j) {
+      var arr = Array.isArray(j) ? j : [j], ends = [];
+      arr.forEach(function (o) {
+        var m = o && o.hourly;
+        if (!m || !m.time) return;
+        ends.push(dryAt(m.time, m.precipitation || []));
+      });
+      if (!ends.length) throw new Error("empty");   /* no data is a failure, not a forecast */
+      var known = ends.filter(function (v) { return v !== null; });
+      STOP.state = "ok"; STOP.at = Date.now(); STOP.fails = 0;
+      STOP.range = known.length
+        ? { lo:Math.min.apply(null, known), hi:Math.max.apply(null, known),
+            all:known.length === ends.length }
+        : null;
+      drawBulletin();
+    })
+    .catch(function () {
+      STOP.fails++; STOP.state = "fail"; STOP.key = "";
+      drawBulletin();
+    });
+}
+
+/* A clock time, not a countdown. The bulletin is forwarded and read minutes or
+   hours later, and "in 45 minutes" is wrong by then while "by 09:00" is not.
+   The model steps hourly, so the answer is stated on the hour — quarter hours
+   would dress up an interpolation as a measurement. */
+function q15(ms) { return Math.ceil(ms / (60 * 60000)) * (60 * 60000); }
+function stopWord() {
+  if (STOP.state === "loading") return { t:T("stopWait"), dim:true };
+  if (STOP.state === "offline") return { t:T("stopOffline"), dim:true };
+  if (STOP.state === "budget" || STOP.state === "fail") return null;
+  if (STOP.state !== "ok") return null;
+  if (!STOP.range) return { t:T("stopBeyond"), dim:false };
+  var a = mytClock(q15(STOP.range.lo)), b = mytClock(q15(STOP.range.hi));
+  var body = (a === b) ? a : a + "\u2013" + b;
+  return { t:T("stopBy") + " " + body + (STOP.range.all ? "" : "+"), dim:false };
+}
+
 /* ══ wiring ══ */
 function paintBtns() {
+  document.getElementById("pins").setAttribute("aria-pressed", PINS ? "true" : "false");
   ["all","pen","bor"].forEach(function (v, i) {
     document.getElementById(["vAll","vPen","vBor"][i]).setAttribute("aria-pressed", VIEW === v);
   });
@@ -2613,6 +3910,12 @@ function applyLang() {
     var v = I18N[LANG][n.getAttribute("data-i")]; if (v) n.textContent = v;
   });
   document.getElementById("io").placeholder = T("ioHint");
+  /* One name per language: 雨情 in Chinese, RAINBULLETIN in English — showing
+     both at once made the masthead read like a bilingual logo lockup. */
+  document.querySelector(".mastrow h1.zh").hidden = (LANG !== "zh");
+  document.querySelector(".mastrow h1.en").hidden = (LANG === "zh");
+  /* On a phone this opens the share sheet rather than writing a file, so say so */
+  if (canSharePng()) document.getElementById("png").textContent = T("btnShare");
   var sb = document.getElementById("calSensBar");
   if (sb) [].forEach.call(sb.children, function (c, i) { c.textContent = T("calSensL")[i]; });
   render();
@@ -2621,6 +3924,7 @@ function applyLang() {
 
 document.getElementById("lang").onclick = function () {
   LANG = LANG === "zh" ? "en" : "zh"; store.set("lang", LANG); applyLang();
+  showProbe(null);
 };
 [["vAll","all"],["vPen","pen"],["vBor","bor"]].forEach(function (p) {
   document.getElementById(p[0]).onclick = function () { VIEW = p[1]; paintBtns(); drawBulletin(); };
@@ -2635,10 +3939,11 @@ document.getElementById("zrDone").onclick = function () { document.getElementByI
     var a = parseFloat(document.getElementById("zrA").value);
     var b = parseFloat(document.getElementById("zrB").value);
     var c = parseFloat(document.getElementById("zrCap").value);
-    if (isFinite(a) && a > 1) ZR.a = a;
-    if (isFinite(b) && b > 0.4 && b <= 3) ZR.b = b;
-    if (isFinite(c) && c >= 35 && c <= 75) ZR.cap = c;
-    saveZR(); paintZR(); render();
+    var cur = { a:ZR.a, b:ZR.b, cap:ZR.cap };
+    if (isFinite(a) && a > 1) cur.a = a;
+    if (isFinite(b) && b > 0.4 && b <= 3) cur.b = b;
+    if (isFinite(c) && c >= 35 && c <= 75) cur.cap = c;
+    ZRS[ZRSEL] = cur; saveZR(); paintZR(); render();
   };
 });
 document.getElementById("zrAdd").onclick = function () {
@@ -2652,7 +3957,8 @@ document.getElementById("zrAdd").onclick = function () {
 document.getElementById("zrDoFit").onclick = function () {
   var f = fitZR();
   if (!f || !f.ok) { toast("\u00d7"); return; }
-  ZR.a = f.a; ZR.b = f.b; saveZR(); paintZR(); render();
+  ZRS[ZRSEL] = { a:f.a, b:f.b, cap:ZR.cap };
+  saveZR(); paintZR(); render();
   toast(T("zrFitted") + " R\u00b2=" + f.r2.toFixed(2));
 };
 document.getElementById("zrCross").onclick = function () {
@@ -2668,7 +3974,16 @@ document.getElementById("zrClear").onclick = function () {
   setZrPairs([]); paintZR();
 };
 document.getElementById("zrReset").onclick = function () {
-  ZR = { a:200, b:1.6, cap:53 }; saveZR(); paintZR(); render();
+  delete ZRS[ZRSEL]; saveZR(); paintZR(); render();
+};
+function syncSrcOpen() {
+  document.getElementById("zrHead").setAttribute("aria-expanded", ZR_OPEN ? "true" : "false");
+  document.getElementById("zrTiles").hidden = !ZR_OPEN;
+}
+document.getElementById("zrHead").onclick = function () {
+  /* toggle only — no rebuild, so the caret rotation transitions instead of
+     being torn down and recreated mid-animation */
+  ZR_OPEN = !ZR_OPEN; syncSrcOpen();
 };
 
 document.getElementById("copy").onclick = copyText;
@@ -2777,11 +4092,40 @@ document.getElementById("calClearImg").onclick = function () { clearRadar(); };
   });
 })();
 document.getElementById("png").onclick  = savePng;
+document.getElementById("wa1").onclick  = function () { shareWhatsApp(false); };
+document.getElementById("wa2").onclick  = function () { shareWhatsApp(true);  };
+document.getElementById("pins").onclick = function () {
+  PINS = PINS ? 0 : 1; store.set("pins", PINS); paintBtns(); render();
+};
 document.getElementById("edit").onclick = function () { paintList(); document.getElementById("dlg").showModal(); };
+document.getElementById("fPurge").onclick = function () {
+  var n = FAVS.filter(function (f) { return f.del; }).length;
+  if (!n) return;
+  if (!confirm(T("btnPurge") + " " + n + "?")) return;
+  FAVS = FAVS.filter(function (f) { return !f.del; });
+  saveFavs(); paintList(); render();
+};
+document.getElementById("fFind").oninput = paintList;
+document.getElementById("fHere").onclick = function () {
+  if (!navigator.geolocation) { toast(T("noGeo")); return; }
+  var b = this;
+  b.disabled = true; b.textContent = T("locating");
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    document.getElementById("fLat").value = pos.coords.latitude.toFixed(5);
+    document.getElementById("fLon").value = pos.coords.longitude.toFixed(5);
+    b.disabled = false; b.textContent = T("btnHere");
+    var d = districtAt(pos.coords.longitude, pos.coords.latitude);
+    toast(d ? distName(d) + ", " + stateName(d.state) : T("outside"));
+    document.getElementById("fName").focus();
+  }, function () {
+    b.disabled = false; b.textContent = T("btnHere");
+    toast(T("noGeo"));
+  }, { enableHighAccuracy:true, timeout:12000, maximumAge:60000 });
+};
 document.getElementById("fAdd").onclick = addFav;
 document.getElementById("fClose").onclick = function () { document.getElementById("dlg").close(); render(); };
 document.getElementById("fDump").onclick = function () {
-  document.getElementById("io").value = FAVS.map(function (f) { return f.n + ", " + f.la + ", " + f.lo; }).join("\n");
+  document.getElementById("io").value = liveFavs().map(function (f) { return f.n + ", " + f.la + ", " + f.lo; }).join("\n");
 };
 document.getElementById("fLoad").onclick = function () {
   var out = [], bad = 0;
@@ -2789,13 +4133,14 @@ document.getElementById("fLoad").onclick = function () {
     if (!ln.trim()) return;
     var p = ln.split(","), la = parseFloat(p[p.length-2]), lo = parseFloat(p[p.length-1]);
     var n = p.slice(0, -2).join(",").trim();
-    if (n && isFinite(la) && isFinite(lo)) out.push({ n:n, la:la, lo:lo }); else bad++;
+    if (n && isFinite(la) && isFinite(lo)) out.push({ n:n, la:la, lo:lo, g:"", st:0, u:1 }); else bad++;
   });
   if (!out.length) { toast("×"); return; }
   FAVS = out; saveFavs(); paintList(); toast(out.length + (bad ? " / " + bad + "×" : ""));
 };
 document.getElementById("fReset").onclick = function () {
-  FAVS = SEED.map(function (s) { return { n:s[0], la:s[1], lo:s[2] }; }); saveFavs(); paintList();
+  FAVS = SEED.map(function (s) { return { n:s[0], la:s[1], lo:s[2], g:s[3] || "", st:0 }; });
+  saveFavs(); paintList(); render();
 };
 
 window.addEventListener("resize", function () { clearTimeout(window._rz); window._rz = setTimeout(drawBulletin, 180); });
@@ -2809,6 +4154,7 @@ if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
 }
 
 applyLang(); paintBtns(); paintLayers(); render();
+collectShared();
 </script>
 </body>
 </html>
