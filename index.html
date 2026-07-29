@@ -84,8 +84,23 @@ button.tool{
 button.tool:hover{border-color:#454d80}
 button.tool[aria-pressed="true"]{background:var(--jmm);border-color:var(--jmm);color:#fff}
 button.tool.go{background:var(--jmm);border-color:var(--jmm);color:#fff;font-weight:600}
-button.tool.wa{background:#128c7e;border-color:#128c7e;color:#fff;font-weight:600}
-button.tool.wa:hover{border-color:#1aa08f}
+button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight:700}
+#quickWrap[hidden]{display:none}
+#credBody[hidden]{display:none}
+#quick{border:1px solid var(--line);border-radius:3px;background:#0d0f1c;padding:4px 0;margin-bottom:6px}
+#quick .qst{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.06em;
+  padding:7px 11px 3px;border-top:1px solid var(--line)}
+#quick .qst:first-child{border-top:0}
+#quick .qrow{display:flex;align-items:baseline;gap:9px;padding:6px 11px}
+#quick .qn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#quick .qd{color:var(--dim);font-size:11.5px}
+#quick .qmm{font-family:var(--mono);font-weight:700;white-space:nowrap}
+#quick .qnone{padding:10px 11px;color:var(--dim);font-size:12.5px}
+.wapre{background:#0d0f1c;border:1px solid var(--line);border-radius:3px;padding:8px;margin-bottom:10px;
+  max-height:44vh;overflow:auto;text-align:center}
+.wapre img{max-width:100%;height:auto;display:block;margin:0 auto}
+#waTxt{min-height:150px;line-height:1.5}
+button.tool.wa:hover{background:#31e074;border-color:#31e074}
 button.tool:disabled{opacity:.4;cursor:default}
 button.tool:focus-visible,.langbtn:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
@@ -108,8 +123,9 @@ h2.sec{
 .state.open>h3 .caret{transform:rotate(90deg)}
 .state .grows{display:none}
 .state.open .grows{display:block}
-.state>h3 em{font-style:normal;font-family:var(--mono);font-size:11px;font-weight:600;
-  color:var(--dim);letter-spacing:.05em}
+.state>h3 em{font-style:normal;font-family:var(--mono);font-size:12.5px;font-weight:700;
+  color:#cfd6f5;letter-spacing:.04em}
+.state>h3 em.wet{color:#fff;background:var(--r3);border-radius:8px;padding:1px 7px}
 .row{
   display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;
   padding:8px 10px;border:1px solid var(--line);border-radius:2px;background:var(--steel);
@@ -235,7 +251,7 @@ dialog#cal{width:min(940px,96vw)}
   .bar.keypad{display:block;margin:11px 0 16px}
   .brow{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:7px}
   .brow .spacer{display:none}
-  .brow.wa2{grid-template-columns:repeat(2,1fr)}
+  .brow.wa3{grid-template-columns:repeat(3,1fr)}
   .fld .bar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
   .fld .bar button.tool{
     width:100%;height:auto;min-height:40px;padding:8px 4px;font-size:12px;
@@ -297,17 +313,28 @@ dialog#cal{width:min(940px,96vw)}
       <button class="tool" id="pins" data-i="btnPins">显示点</button>
       <button class="tool" id="edit" data-i="btnEdit">收藏点</button>
     </div>
-    <div class="brow wa2">
+    <div class="brow wa3">
+      <button class="tool" id="quickBtn" aria-pressed="false" data-i="btnQuick">速览 ≥2.5</button>
       <button class="tool wa" id="wa1" data-i="btnWa1">WA 通报</button>
       <button class="tool wa" id="wa2" data-i="btnWa2">WA 明细</button>
     </div>
   </div>
 
+  <section id="quickWrap" hidden>
+    <h2 class="sec" id="quickHead">速览</h2>
+    <div id="quick"></div>
+  </section>
+
   <h2 class="sec" data-i="secRoster">收藏点明细</h2>
   <div id="roster"></div>
 
-  <h2 class="sec" data-i="secSource">数据来源</h2>
-  <p class="hint" id="sourceNote"></p>
+  <h2 class="sec" id="credHead" style="cursor:pointer;user-select:none">
+    <span class="caret" id="credCaret" style="display:inline-block;font-family:var(--mono);color:var(--dim);transition:transform .12s ease;width:9px">›</span>
+    <span data-i="secSource">致谢与声明</span></h2>
+  <div id="credBody">
+    <p class="hint" id="sourceNote"></p>
+    <div id="credQr" style="display:flex;align-items:center;gap:14px;margin:10px 0 4px"></div>
+  </div>
   <p class="hint" id="buildNote"></p>
 </div>
 
@@ -389,7 +416,10 @@ dialog#cal{width:min(940px,96vw)}
   <div class="drop" id="calDrop">
     <span data-i="calDrop">粘贴截图（⌘V / Ctrl-V）、拖入，或选择图片</span><br>
     <span class="hint" id="dropHint" style="display:block;margin-top:4px"></span>
-    <button class="tool" id="calPick" data-i="calPick" style="margin-top:10px">选图片</button>
+    <div class="brow" style="grid-template-columns:1fr 1fr;margin-top:10px;max-width:340px;margin-left:auto;margin-right:auto">
+      <button class="tool go" id="calPaste" data-i="calPasteBtn">粘贴</button>
+      <button class="tool" id="calPick" data-i="calPick">选图片</button>
+    </div>
     <input type="file" id="calFile"
            accept="image/png,image/jpeg,image/webp" multiple hidden>
   </div>
@@ -397,8 +427,16 @@ dialog#cal{width:min(940px,96vw)}
     <div class="cvwrap"><canvas id="calCv"></canvas>
       <div class="rail l" aria-hidden="true"></div>
       <div class="rail r" aria-hidden="true"></div></div>
+    <div class="fld"><label data-i="calRegion">图幅范围</label>
+      <div class="srctiles" id="regHint" style="margin-top:0"></div></div>
+    <div class="brow" id="alignBar" hidden style="grid-template-columns:repeat(4,1fr);margin:8px 0 0">
+      <button class="tool" id="alignOut" data-i="aZoomOut">缩小</button>
+      <button class="tool" id="alignIn" data-i="aZoomIn">放大</button>
+      <button class="tool" id="alignReset" data-i="alignReset">复位</button>
+      <button class="tool go" id="alignSnap" data-i="btnSnap">吸附</button>
+    </div>
     <div id="calManualBox" hidden>
-      <div class="fld"><label data-i="calAnchors">定位点</label><select id="calSel"></select></div>
+  <div class="fld"><label data-i="calAnchors">定位点</label><select id="calSel"></select></div>
       <p class="hint" data-i="calTap">在截图上点击地标位置，至少两个</p>
       <div class="list" id="calList"></div>
     </div>
@@ -407,6 +445,7 @@ dialog#cal{width:min(940px,96vw)}
       <div class="bar" id="calTimeBar" style="margin:0"></div></div>
     <div class="foot">
       <button class="tool" id="calCoast" aria-pressed="false" data-i="calCoast">叠示海岸线校对</button>
+      <button class="tool" id="calAlign" aria-pressed="false" data-i="btnAlign">对齐校准</button>
       <button class="tool" id="calManual" aria-pressed="false" data-i="manual">手动点选</button>
       <button class="tool go" id="calApply" data-i="addLayer">加入图层</button>
     </div>
@@ -414,6 +453,21 @@ dialog#cal{width:min(940px,96vw)}
   <div class="foot" style="border-top:1px solid var(--line);padding-top:12px;margin-top:14px">
     <button class="tool" id="calClearImg" data-i="clearAll">清除全部</button>
     <button class="tool go" id="calDone" data-i="done">完成</button>
+  </div>
+</div></dialog>
+
+<dialog id="wa"><div class="dlg">
+  <h3 style="display:flex;align-items:center;gap:10px">
+    <span data-i="dlgWa" style="flex:1">WhatsApp 预览</span>
+    <button class="x" id="waX" aria-label="close" style="font-size:20px">×</button>
+  </h3>
+  <div class="wapre" id="waPre"><img id="waImg" alt=""></div>
+  <p class="hint" id="waHint" data-i="waEdit">发送前可修改文字</p>
+  <textarea id="waTxt" spellcheck="false" rows="10"></textarea>
+  <div class="foot" style="border-top:1px solid var(--line);padding-top:12px;margin-top:14px">
+    <button class="tool" id="waCancel" data-i="btnCancel">取消</button>
+    <button class="tool" id="waCopy" data-i="waCopy" hidden>复制文字</button>
+    <button class="tool wa" id="waSend" data-i="waSend">发送到 WhatsApp</button>
   </div>
 </div></dialog>
 
@@ -428,7 +482,50 @@ dialog#cal{width:min(940px,96vw)}
    Rain: pasted Rain Alarm Pro / Windy radar screenshots only — no network
    ══════════════════════════════════════════════════════════════════ */
 var NS            = "rainbulletin-my";
-var CACHE_VERSION = "rbmy-v4.20.2-20260728";
+/* ══════════════════════════════════════════════════════════════════
+   雨情 RainBulletin MY — MAINTENANCE MAP
+   Single-file offline-first bilingual PWA. Stanley pastes a Windy or Rain
+   Alarm radar screenshot; the app georeferences it, reprojects onto 160
+   Malaysia ADM2 districts, and renders the morning bulletin card he
+   broadcasts on WhatsApp.
+
+   RELEASE CHECKLIST (every publish, no exceptions)
+   1. Bump CACHE_VERSION here AND in sw.js — they must match.
+   2. node --check the extracted script (build.py does this).
+   3. Run the regression suites; every one green before shipping.
+   4. Ship four files together: index.html, sw.js, manifest.json, icon.svg.
+
+   SECTION INDEX (search for the banner or the function name)
+   · i18n tables ......... T(), zh/en dictionaries (mixed UTF-8 + \uXXXX —
+                           always grep the exact current bytes before editing)
+   · solveCal/wmx/wmy .... web-mercator maths; cal = {A,Bx,By}: imgPx = A·w+B
+   · PALETTES / ZRS ...... radar colour ladders and Z-R relations per source
+   · detectSource ........ which app took the capture, read from its legend's
+                           STRUCTURE (blocks vs sweep), never exact RGBs
+   · learnBasemap/edgeMap  basemap model, edge bitmap + rain mask (msk)
+   · chamfer/localContrast matching metrics; both skip rain-masked points —
+                           coast under echo is unknown, not wrong
+   · frameCoverage ....... diagnostic only: fraction of outline in frame.
+                           NEVER let it rank the search — it rises as a guess
+                           zooms in, and once steered a half-size peninsula
+                           onto Johor. Same lesson: never compute it inside a
+                           sort comparator (cost 5s of a 7s registration).
+   · searchHypothesis .... the auto search funnel (west/east/all hypotheses)
+   · registerImage ....... paste entry: pyramid, gates (fit/margin), AUTOCAL
+   · runRegistration ..... recall → detectSource (BEFORE any gate — detection
+                           must fire even when registration fails) → search
+   · align (ALIGN*) ...... passport-photo fallback: outline drags over the
+                           static screenshot; snapAlign = local hill-climb,
+                           mask-free and frame-scoped by design
+   · reprojectImage ...... cal + palette → district cells → bulletin
+   · WhatsApp (wa*) ...... preview dialog, PNGWARM pre-render, per-platform
+                           dispatch (iOS share sheet / wa.me / clipboard)
+   · roster / quick view . favourites list, 速览 ≥2.5 panel
+   · Eternal invariants: loud failure over silent stale data; never fabricate
+     agronomic numbers; broadcast text = states + districts only; recall
+     replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
+   ══════════════════════════════════════════════════════════════════ */
+var CACHE_VERSION = "rbmy-v4.29.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -571,7 +668,10 @@ var I18N = {
   zh: {
     brandZh:"雨情", brandEn:"RAINBULLETIN", tagline:"降雨县属着色", vAll:"全国", vPen:"半岛", vBor:"东马",
     btnCopy:"复制文字", btnPng:"存图 PNG", btnEdit:"收藏点",
-    secRoster:"收藏点明细", secSource:"数据来源",
+    secRoster:"收藏点明细", secSource:"致谢与声明",
+    btnQuick:"速览 ≥2.5", quickHead:"速览 · 雨势 ≥2.5 mm/h",
+    quickNone:"暂无收藏点达到 2.5 mm/h。", quickNoRate:"此雷达来源未提供雨量，无法按 mm/h 筛选。",
+    quickNoRadar:"尚未贴图 — 请贴入雷达截图。",
     dlgTitle:"收藏点管理", fName:"名称", fLat:"纬度 Lat", fLon:"经度 Lon",
     btnAdd:"加入", btnLoad:"从文本载入", btnDump:"导出到文本", btnReset:"还原示范", btnClose:"完成",
     ioHint:"批量：每行一个「名称, 纬度, 经度」",
@@ -587,10 +687,16 @@ var I18N = {
     zrGauge:"\u5b9e\u6d4b mm/h", zrDbz:"\u5f53\u65f6 dBZ", zrDoFit:"\u7528\u5b9e\u6d4b\u62df\u5408",
     zrNeed:"\u81f3\u5c11\u9700\u8981 3 \u7ec4\u5bf9\u7167", zrFitted:"\u5df2\u62df\u5408", mdlRate:"\u63a8\u7b97",
     zrCross:"\u4ece\u4e24\u56fe\u914d\u5bf9", zrClear:"\u6e05\u7a7a\u5bf9\u7167", zrSrc:"\u96f7\u8fbe\u6765\u6e90", srcOn:"\u5df2\u8f7d\u5165",
+    cover:"\u8986\u76d6", calRegion:"\u56fe\u5e45\u8303\u56f4",
+    srcAuto:"\u81ea\u52a8\u8bc6\u522b", srcPhone:"\u624b\u673a", srcDesk:"\u7535\u8111",
+    btnAlign:"\u5bf9\u9f50\u6821\u51c6", btnSnap:"\u5438\u9644", alignReset:"\u590d\u4f4d",
+    aZoomIn:"\u653e\u5927", aZoomOut:"\u7f29\u5c0f", alignLocked:"\u5df2\u5438\u9644",
+    alignHint:"\u62d6\u52a8\u3001\u53cc\u6307\u7f29\u653e\u7ea2\u8272\u8f6e\u5ed3\uff0c\u8d34\u5230\u622a\u56fe\u7684\u6d77\u5cb8\u7ebf\u4e0a\uff0c\u7136\u540e\u70b9 \u5438\u9644",
+    hintAuto:"\u81ea\u52a8", hintWest:"\u897f\u9a6c", hintEast:"\u4e1c\u9a6c", hintAll:"\u5168\u56fd",
     offshore:"\u5916\u6d77\u96e8\u533a\uff1a",
     stopBy:"\u9884\u8ba1\u96e8\u52bf\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
     stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
-    stopNote:"\u6a21\u5f0f\u9884\u62a5\uff08\u975e\u5b9e\u6d4b\uff09", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
+    stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
     probeHint:"\u6307\u5411\u6216\u70b9\u89e6\u5730\u56fe\uff0c\u67e5\u770b\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
@@ -598,6 +704,15 @@ var I18N = {
     shared:"\u5df2\u5206\u4eab", longPress:"\u957f\u6309\u56fe\u7247\u53ef\u4fdd\u5b58", btnShare:"\u5206\u4eab\u56fe\u7247",
     btnWa1:"WA \u901a\u62a5", btnWa2:"WA \u660e\u7ec6", waHead:"\u6536\u85cf\u70b9\u96e8\u60c5\uff1a",
     waReady:"\u5df2\u5f00 WhatsApp \u00b7 \u56fe\u5df2\u4e0b\u8f7d\uff0c\u8bf7\u9644\u4e0a",
+    waPaste:"\u56fe\u4e0e\u6587\u5b57\u5df2\u590d\u5236 \u00b7 \u5728 WhatsApp \u7c98\u8d34\u56fe\uff0c\u518d\u5728\u8bf4\u660e\u680f\u7c98\u8d34\u6587\u5b57",
+    waAgain:"\u56fe\u5df2\u5907\u597d \u00b7 \u8bf7\u518d\u70b9\u4e00\u6b21",
+    waApp:"\u5df2\u5f00 WhatsApp \u00b7 \u56fe\u5df2\u5b58\uff0c\u9009\u5bf9\u8c61\u540e\u9644\u4e0a",
+    dlgWa:"WhatsApp \u9884\u89c8", waSend:"\u53d1\u9001\u5230 WhatsApp", btnCancel:"\u53d6\u6d88",
+    waCopy:"\u590d\u5236\u6587\u5b57", waCopied:"\u5df2\u590d\u5236",
+    waDeskStep:"\u56fe\u5df2\u590d\u5236\uff1a\u5148\u5728 WhatsApp \u7c98\u8d34\u56fe\u7247\uff1b\u518d\u56de\u6765\u70b9 \u590d\u5236\u6587\u5b57\uff0c\u7c98\u5230\u8bf4\u660e\u680f",
+    waCopied2:"\u6587\u5b57\u5df2\u590d\u5236 \u00b7 \u7c98\u5230\u8bf4\u660e\u680f\u540e\u53d1\u9001",
+    waEdit:"\u53d1\u9001\u524d\u53ef\u4fee\u6539\u6587\u5b57",
+    waHttps:"\u672c\u5730\u6587\u4ef6\u65e0\u6cd5\u76f4\u63a5\u5206\u4eab \u00b7 \u8bf7\u7528\u7f51\u5740\u6253\u5f00",
     waBlocked:"\u5f39\u7a97\u88ab\u62e6 \u00b7 \u6587\u5b57\u5df2\u590d\u5236\uff0c\u56fe\u5df2\u4e0b\u8f7d",
     zrBadFit:"\u4e24\u8005\u4e0d\u4e00\u81f4\uff0c\u4e0d\u53ef\u7528",
     zrNoCross:"\u9700\u8981\u540c\u65f6\u8d34\u5165 Rain Alarm \u4e0e Windy \u4e24\u5f20\u56fe", recalled:"\u6cbf\u7528\u5df2\u5b58\u5b9a\u4f4d", queued:"\u5f85\u5904\u7406", wetCount:"\u53bf\u5c5e\u6709\u96e8", shapeAt:"\u8f6e\u5ed3\u5339\u914d", margin:"\u9886\u5148", more:"\u66f4\u591a\u53bf\u5c5e", listMin:"\u540d\u5355\u2265\u5c0f\u96e8",
@@ -611,6 +726,9 @@ var I18N = {
     btnPaste:"\u8d34\u56fe\u96f7\u8fbe", srcRadar:"\u8d34\u56fe\u96f7\u8fbe",
     dlgCal:"\u8d34\u56fe\u5b9a\u4f4d \u00b7 \u91cd\u6295\u5f71",
     calDrop:"\u7c98\u8d34\u622a\u56fe\uff08\u2318V / Ctrl-V\uff09\u3001\u62d6\u5165\uff0c\u6216\u9009\u62e9\u56fe\u7247",
+    calPasteBtn:"\u7c98\u8d34", pasteNone:"\u526a\u8d34\u677f\u4e2d\u6ca1\u6709\u56fe\u7247",
+    qrHint:"\u626b\u7801\u6253\u5f00\u672c\u5e94\u7528",
+    pasteDenied:"\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f", pasteNoApi:"\u6b64\u73af\u5883\u4e0d\u652f\u6301\u8bfb\u53d6\u526a\u8d34\u677f",
     calPick:"\u9009\u56fe\u7247", calTap:"\u5728\u622a\u56fe\u4e0a\u70b9\u51fb\u5730\u6807\u4f4d\u7f6e\uff0c\u81f3\u5c11\u4e24\u4e2a",
     calAnchors:"\u5b9a\u4f4d\u70b9", calFit:"\u8bef\u5dee", calNeed:"\u9700\u8981\u81f3\u5c11 2 \u4e2a\u5b9a\u4f4d\u70b9",
     calCoast:"\u53e0\u793a\u6d77\u5cb8\u7ebf\u6821\u5bf9", calApply:"\u91cd\u6295\u5f71\u5230\u5730\u56fe", calClearImg:"\u6e05\u9664\u8d34\u56fe",
@@ -624,7 +742,11 @@ var I18N = {
   en: {
     brandZh:"雨情", brandEn:"RAINBULLETIN", tagline:"Rainfall by district", vAll:"All", vPen:"Peninsular", vBor:"Sabah & Sarawak",
     btnCopy:"Copy text", btnPng:"Save PNG", btnEdit:"Favourites",
-    secRoster:"Favourite locations", secSource:"Data source",
+    secRoster:"Favourite locations", secSource:"Credits & Acknowledgements",
+    btnQuick:"Quick \u22652.5", quickHead:"Quick view \u00b7 rain \u22652.5 mm/h",
+    quickNone:"No favourite location is at 2.5 mm/h right now.",
+    quickNoRate:"This radar source gives no rainfall rate, so mm/h cannot be filtered.",
+    quickNoRadar:"No radar pasted yet \u2014 paste a screenshot first.",
     dlgTitle:"Manage favourites", fName:"Name", fLat:"Latitude", fLon:"Longitude",
     btnAdd:"Add", btnLoad:"Load from text", btnDump:"Dump to text", btnReset:"Restore samples", btnClose:"Done",
     ioHint:"Bulk: one “name, lat, lon” per line",
@@ -640,10 +762,16 @@ var I18N = {
     zrGauge:"Gauge mm/h", zrDbz:"dBZ then", zrDoFit:"Fit from pairs",
     zrNeed:"Needs at least 3 pairs", zrFitted:"Fitted", mdlRate:"modelled",
     zrCross:"Pair from two images", zrClear:"Clear pairs", zrSrc:"Radar source", srcOn:"on map",
+    cover:"in frame", calRegion:"What is in the image",
+    srcAuto:"detected", srcPhone:"phone", srcDesk:"desktop",
+    btnAlign:"Align overlay", btnSnap:"Snap", alignReset:"Reset",
+    aZoomIn:"Zoom in", aZoomOut:"Zoom out", alignLocked:"Snapped",
+    alignHint:"Drag / pinch the red outline onto the screenshot's coastline, then tap Snap",
+    hintAuto:"Auto", hintWest:"Peninsular", hintEast:"Sabah & Sarawak", hintAll:"Whole country",
     offshore:"Offshore rain:",
     stopBy:"Rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
     stopBeyond:"Rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
-    stopNote:"model forecast (not observed)", srcFav:"favourites", srcDist:"districts",
+    stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
     probeHint:"Point at or tap the map to identify a district",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
@@ -651,6 +779,15 @@ var I18N = {
     shared:"Shared", longPress:"Long-press the image to save it", btnShare:"Share image",
     btnWa1:"WA bulletin", btnWa2:"WA detail", waHead:"Raining at favourite locations:",
     waReady:"WhatsApp opened \u00b7 image downloaded \u2014 attach it",
+    waPaste:"Image + text copied \u00b7 paste the image in WhatsApp, then paste the text in the caption box",
+    waAgain:"Image ready \u00b7 tap once more to share",
+    waApp:"WhatsApp opened \u00b7 image saved \u2014 attach it after picking the chat",
+    dlgWa:"WhatsApp preview", waSend:"Send to WhatsApp", btnCancel:"Cancel",
+    waCopy:"Copy text", waCopied:"Copied",
+    waDeskStep:"Image copied: paste it in WhatsApp first; then come back, tap Copy text, and paste it as the caption",
+    waCopied2:"Text copied \u00b7 paste into the caption box and send",
+    waEdit:"Edit the text before sending",
+    waHttps:"Direct share needs the hosted URL, not a local file",
     waBlocked:"Popup blocked \u00b7 text copied, image downloaded",
     zrBadFit:"sources disagree \u2014 not usable",
     zrNoCross:"Needs a Rain Alarm and a Windy layer loaded together", recalled:"Reused saved calibration", queued:"queued", wetCount:"districts raining", shapeAt:"shape match", margin:"margin", more:"more districts", listMin:"list \u2265 light",
@@ -664,6 +801,9 @@ var I18N = {
     btnPaste:"Paste radar", srcRadar:"Pasted radar",
     dlgCal:"Georeference & reproject",
     calDrop:"Paste a screenshot (\u2318V / Ctrl-V), drop one in, or choose a file",
+    calPasteBtn:"Paste", pasteNone:"No image on the clipboard",
+    qrHint:"Scan to open this app",
+    pasteDenied:"Clipboard read not allowed", pasteNoApi:"Clipboard reading unavailable here",
     calPick:"Choose image", calTap:"Tap each landmark where it sits on your screenshot \u2014 two or more",
     calAnchors:"Anchors", calFit:"Fit error", calNeed:"Needs at least 2 anchors",
     calCoast:"Overlay coastline to check", calApply:"Reproject onto map", calClearImg:"Clear image",
@@ -1220,6 +1360,111 @@ function matchStep(pal, r, g, b) {
 }
 
 /* Which palette, if any, does this image speak? */
+/* ══ Which app took this screenshot ═══════════════════════════════
+   Every capture carries its own legend, and the two apps draw legends that
+   cannot be confused: Windy prints one continuous rainbow ramp, Rain Alarm
+   prints twelve discrete swatches whose RGB values are byte-identical between
+   its phone app and its website. Reading that tells us which Z-R relation to
+   apply and which basemap the registration is up against, instead of relying
+   on the user to remember. Phone vs desktop follows from the aspect ratio,
+   which is the one thing a phone screenshot cannot disguise.
+
+   Sampled across the whole image on purpose: the legend lives in the chrome,
+   which mapBand() deliberately excludes. */
+function detectSource(ctx, iw, ih) {
+  /* Which app took this capture, read from the shape of its own legend.
+     Exact swatch matching died on real pixels: the Rain Alarm MOBILE app
+     draws its legend with theme and opacity applied, so a stored web value
+     like (4,233,231) arrives as (136,221,223) — no tolerance saves that.
+     What survives theming is STRUCTURE: Rain Alarm's legend is a strip of
+     flat colour blocks with hard jumps between them; Windy's is one
+     continuous sweep with no jumps. Measured on real captures: Rain Alarm
+     shows 8-12 hard jumps, Windy shows 26-27 distinct hues with at most a
+     couple of jumps. */
+  var f = Math.min(1, 420 / Math.max(iw, ih));
+  var w = Math.max(2, Math.round(iw * f)), h = Math.max(2, Math.round(ih * f));
+  var c = document.createElement("canvas"); c.width = w; c.height = h;
+  var x = c.getContext("2d", { willReadFrequently:true });
+  x.drawImage(ctx.canvas, 0, 0, w, h);
+  var D = x.getImageData(0, 0, w, h).data;
+
+  function px(ix, iy) { var i = (iy * w + ix) * 4; return [D[i], D[i+1], D[i+2], D[i+3]]; }
+  function hue(p) {
+    var r = p[0]/255, g = p[1]/255, b = p[2]/255;
+    var mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn;
+    if (d < 0.12 || mx < 0.2) return -1;
+    var hh;
+    if (mx === r) hh = ((g - b) / d + 6) % 6;
+    else if (mx === g) hh = (b - r) / d + 2;
+    else hh = (r - g) / d + 4;
+    return hh * 60;
+  }
+
+  var bestJumps = 0, bestHues = 0, bestRow = -1;
+  for (var y = Math.round(h * 0.55); y < h; y++) {
+    var prev = null, jumps = 0, colored = 0, flat = 0, firstHues = [];
+    for (var ix = Math.round(w * 0.04); ix < w * 0.97; ix += 1) {
+      var p = px(ix, y);
+      if (p[3] < 40) { prev = null; continue; }
+      var hv = hue(p);
+      if (hv >= 0) { colored++; if (firstHues.length < 400) firstHues.push(hv); }
+      if (prev) {
+        var d = Math.abs(p[0]-prev[0]) + Math.abs(p[1]-prev[1]) + Math.abs(p[2]-prev[2]);
+        if (d > 90) jumps++; else if (d < 18) flat++;
+      }
+      prev = p;
+    }
+    if (colored < w * 0.30) continue;
+    var uniq = {}, n = 0;
+    firstHues.forEach(function (v) { var k = Math.round(v / 12); if (!uniq[k]) { uniq[k] = 1; n++; } });
+    /* a legend row is mostly flat; a radar-field row is chaos everywhere */
+    if (flat < colored * 0.5) continue;
+    /* What separates the three kinds of colourful row, measured on real
+       captures: a Rain Alarm legend is ~12 LONG flat blocks (few jumps, long
+       runs); a Windy legend is one sweep (almost no jumps); a radar-echo row
+       is confetti (dozens of jumps, tiny runs — 38 and 62 on the two real
+       files). Jump count alone confused the last two, so the run length
+       between jumps is the discriminator. */
+    var runLen = colored / Math.max(jumps, 1);
+    if (jumps >= 6 && jumps <= 22 && runLen >= w * 0.04) {
+      if (jumps > bestJumps) { bestJumps = jumps; bestRow = y; }
+    }
+    if (jumps <= 3 && n > bestHues) bestHues = n;
+  }
+
+  var out = { app:null, layout:null, palette:null, jumps:bestJumps, hues:bestHues };
+  /* Windy first: a row with a near-jumpless sweep of 18+ hues is something a
+     block legend cannot produce (inside one block there is one hue), while a
+     Windy capture can easily contain some row with a dozen well-spaced colour
+     jumps. The more specific signature decides. */
+  if (bestHues >= 18) {
+    out.app = "windy"; out.palette = "Windy";
+  } else if (bestJumps >= 7) {
+    out.app = "rainalarm";
+    /* Which of its two palettes: Type & Intensity leads with several blue
+       blocks; Intensity Only goes cyan, blue, then green. Count leading
+       blue-family blocks on the winning row. */
+    var blues = 0, seen = 0, last = null;
+    if (bestRow >= 0) {
+      for (var ix2 = Math.round(w * 0.04); ix2 < w * 0.97 && seen < 4; ix2++) {
+        var p2 = px(ix2, bestRow);
+        if (p2[3] < 40) continue;
+        var hv2 = hue(p2);
+        if (hv2 < 0) continue;
+        if (last === null || Math.abs(hv2 - last) > 40) {
+          seen++;
+          if (hv2 >= 170 && hv2 <= 260) blues++;
+          last = hv2;
+        }
+      }
+    }
+    out.palette = (blues >= 3) ? "Rain Alarm \u00b7 Type & Intensity"
+                               : "Rain Alarm \u00b7 Intensity Only";
+  }
+  out.layout = (ih / iw >= 1.4) ? "mobile" : "desktop";
+  return out;
+}
+
 function detectPalette(ctx, iw, ih) {
   var f = Math.min(1, 480 / Math.max(iw, ih));
   var w = Math.max(2, Math.round(iw * f)), h = Math.max(2, Math.round(ih * f));
@@ -1643,6 +1888,23 @@ function coastNormalPts(max, region) {
 }
 
 /* How consistently does the image change sign across our coastline? */
+/* How much of the region's coastline actually lands inside the image.
+   A transform can score well on edge strength and coast polarity while
+   placing most of the region off-frame — that is what let a Peninsular
+   capture register as 东马 at 0.38 km/px, with only a corner of Sabah's
+   outline in view sitting on some unrelated Sumatran coast. A real match
+   of a region puts that region in the picture. */
+function frameCoverage(E, cal, region) {
+  var pts = coastWorld(900, region);
+  if (!pts.length) return 0;
+  var inside = 0;
+  for (var i = 0; i < pts.length; i++) {
+    var px = cal.A * pts[i][0] + cal.bx, py = cal.A * pts[i][1] + cal.by;
+    if (px >= 0 && py >= 0 && px < E.w && py < E.h) inside++;
+  }
+  return inside / pts.length;
+}
+
 function coastPolarity(E, cal, region) {
   var pts = coastNormalPts(700, region);
   var off = Math.max(2, Math.round(E.w * 0.008));
@@ -1704,6 +1966,14 @@ function mapBand(ctx, w, h) {
       list.push(L);
     }
   }
+  /* Rain Alarm's basemap is saturated teal and green, so the low-saturation
+     sampling above starves — measured on a real capture it kept so few pixels
+     that the column profile was noise and x0 came out at 638 of 1320,
+     silently discarding the left half of the map's edges. If we cannot
+     measure the basemap, we must not cut anything. */
+  var sampled = 0;
+  for (var yc = 0; yc < h; yc += 2) for (var qc = 0; qc < w; qc += 2) sampled++;
+  if (list.length < sampled * 0.08) return { y0:0, y1:h, x0:0, x1:w, unsure:true };
   list.sort(function (a, b) { return a - b; });
   var med = list[list.length >> 1] || 128;
 
@@ -1786,7 +2056,7 @@ function edgeMap(ctx, iw, ih) {
     var o4 = k4 * 4;
     blu[k4] = d[o4+2] - (d[o4] + d[o4+1]) / 2;
   }
-  return { bin:bin, w:w, h:h, f:f, y0:y0, y1:y1, lum:lum2, blu:blu };
+  return { bin:bin, w:w, h:h, f:f, y0:y0, y1:y1, lum:lum2, blu:blu, msk:grow };
 }
 
 function distTransform(bin, w, h) {
@@ -1813,24 +2083,37 @@ function distTransform(bin, w, h) {
 }
 function poolBin(L) {
   var w = L.w >> 1, h = L.h >> 1, m = new Uint8Array(w * h);
+  var mk = L.msk ? new Uint8Array(w * h) : null;
   for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
     var o = (y * 2) * L.w + x * 2;
     m[y*w+x] = (L.bin[o] || L.bin[o+1] || L.bin[o+L.w] || L.bin[o+L.w+1]) ? 1 : 0;
+    if (mk) mk[y*w+x] = (L.msk[o] || L.msk[o+1] || L.msk[o+L.w] || L.msk[o+L.w+1]) ? 1 : 0;
   }
-  return { bin:m, w:w, h:h };
+  return { bin:m, w:w, h:h, msk:mk };
 }
 function calAt(L, span, clon, clat) {
   var A = L.w * (360 / span);
   return { A:A, bx:L.w/2 - A*wmx(clon), by:L.h/2 - A*wmy(clat) };
 }
+/* A coast point under rain is UNKNOWN, not wrong. edgeMap masks echo before
+   computing edges, so any coastline beneath rain contributes no edge — and
+   counting those points in the average punished exactly the region it was
+   raining on. Measured on a real Windy capture with heavy echo over the
+   peninsula: the true framing ranked 547th of 810 in the coarse cut (0.257
+   vs the leader's 0.593) purely because its northern coast lay under rain,
+   while Borneo placements sat on clean texture. Skipping masked points asks
+   the only fair question: of the coastline we CAN see, how much fits? */
 function chamfer(L, pts, c) {
-  var s = 0, n = 0;
+  var s = 0, n = 0, on = 0;
   for (var i = 0; i < pts.length; i++) {
     var px = (c.A * pts[i][0] + c.bx) | 0, py = (c.A * pts[i][1] + c.by) | 0;
     if (px < 0 || py < 0 || px >= L.w || py >= L.h) continue;
+    on++;
+    if (L.msk && L.msk[py * L.w + px]) continue;   /* hidden by echo: no vote */
     n++; s += Math.exp(-L.D[py * L.w + px] / 1.6);
   }
-  if (n < pts.length * 0.12) return -1;
+  if (on < pts.length * 0.12) return -1;   /* mostly off-frame: not a candidate */
+  if (n < pts.length * 0.06) return -1;    /* almost everything hidden: unknowable */
   return s / n;
 }
 /* on-register versus deliberately off-register — scale-fair, so candidates
@@ -1871,6 +2154,32 @@ var HYPOTHESES = [
 
 function searchHypothesis(H, L, ci) {
   var Lc = L[ci];
+  /* Every pruning step below used to rank on edge fit alone, and edge fit has
+     almost no discriminating power on a wide capture: on a real Windy
+     screenshot of the peninsula the finalists scored between 3.52 and 3.73.
+     The correctly framed candidates were therefore thrown away at the first
+     cut, long before anything asked whether the region was in the picture at
+     all. Framing now travels WITH each candidate through every cut. */
+  /* SATURATING, deliberately. Raw coverage rises monotonically as a guess
+     zooms in — a smaller outline always fits — so using it as a reward makes
+     the search prefer under-zoomed answers, which is how a half-size
+     peninsula ended up drawn over Johor. Above 0.9 every candidate is
+     "properly framed" and scores identically, leaving edge fit to decide
+     scale as it did before coverage existed. Below that it falls away hard,
+     which is the only thing coverage was ever needed for: throwing out a
+     fragment clinging to a third of its region. */
+  /* Coverage is RECORDED but does not rank. Ranking on it was a mistake I
+     made and measured out again: coverage rises monotonically as a guess
+     zooms in — a smaller outline always fits — so it quietly argues for
+     under-zoomed answers, and a half-size peninsula got drawn over Johor.
+     The pre-v4.23 search found the right scale (1.87 km/px on a capture
+     whose true scale is about 1.8); it only mislabelled the region. So the
+     search is back to edge fit, and coverage is kept for diagnosis. */
+  /* cov is diagnostic only, so it must never run inside a sort comparator:
+     left there after the revert, frameCoverage (900 outline points) executed
+     O(n log n) times per cut and cost five of the seven seconds a
+     registration took — measured against the v4.18 build on the same file.
+     It is now computed once, for the survivors alone. */
   var cC = sceneWorld(450).concat(coastWorld(280, H.key));
   var cF = sceneWorld(1100).concat(coastWorld(900, H.key));
   var STEPS = 14, cands = [];
@@ -1911,7 +2220,10 @@ function searchHypothesis(H, L, ci) {
     out.sort(function (a, b) { return b.z - a.z; });
     cands = out.slice(0, lv === 0 ? 3 : 7);
   }
-  cands.forEach(function (c) { c.key = H.key; });
+  cands.forEach(function (c) {
+    c.key = H.key;
+    c.cov = frameCoverage(L[0], calAt(L[0], c.span, c.clon, c.clat), H.key);
+  });
   return cands;
 }
 
@@ -1995,8 +2307,13 @@ function verifyCal(cal, E, region) {
 
 function registerImage(ctx, iw, ih) {
   BASEMAP = learnBasemap(ctx, iw, ih); PALETTE = null; resetBandCache();
+  /* Match against the map, not the screenshot. A phone capture carries a
+     status bar, app chrome and black padding; scoring coastline across all of
+     that is what left the three hypotheses within 1% of each other (west 0.80,
+     all 0.79, east 0.75 — a coin toss that landed on Borneo). Cropped to the
+     map first, the same capture separates cleanly. */
   var E = edgeMap(ctx, iw, ih);
-  var L = [{ bin:E.bin, w:E.w, h:E.h }];
+  var L = [{ bin:E.bin, w:E.w, h:E.h, msk:E.msk }];
   for (var k = 0; k < 3; k++) L.push(poolBin(L[k]));
   L.forEach(function (l) { l.D = distTransform(l.bin, l.w, l.h); });
 
@@ -2005,6 +2322,7 @@ function registerImage(ctx, iw, ih) {
 
   var results = [];
   HYPOTHESES.forEach(function (H) {
+    if (REGION_HINT !== "auto" && H.key !== REGION_HINT) return;
     var rs = searchHypothesis(H, L, ci);
     if (rs) results.push.apply(results, rs);
   });
@@ -2014,7 +2332,17 @@ function registerImage(ctx, iw, ih) {
      of the coast. Rescore every finalist by how consistently the image flips
      sign across the land/sea line — the one feature no basemap ever moves. */
   results.forEach(function (c) {
-    c.pol = coastPolarity(E, calAt(L[0], c.span, c.clon, c.clat), c.key);
+    var cal = calAt(L[0], c.span, c.clon, c.clat);
+    c.pol = coastPolarity(E, cal, c.key);
+    c.cov = frameCoverage(E, cal, c.key);
+    /* Weighted hard, and deliberately so. Measured on a real Windy
+       capture of the peninsula: the chamfer fit z sat between 3.52 and 3.73
+       across all fourteen candidates — no discriminating power at all — and
+       coast polarity was noise (0.01-0.36) because that grey basemap barely
+       flips luminance at the shoreline. Framing was the only signal carrying
+       information: the right answers had the whole outline in view while the
+       impostors clung to a third of it. A cube turns that into a decisive
+       ~10x rather than the 1.7x that let a fragment win. */
     c.score = c.z * (0.35 + c.pol);
   });
   results.sort(function (a, b) { return b.score - a.score; });
@@ -2045,13 +2373,13 @@ function registerImage(ctx, iw, ih) {
 
   var c0 = calAt(L[0], w.span, w.clon, w.clat);
   return { A:c0.A / E.f, Bx:c0.bx / E.f, By:c0.by / E.f,
-           span:w.span, clon:w.clon, clat:w.clat, fit:w.z, pol:w.pol, shape:w.key,
+           span:w.span, clon:w.clon, clat:w.clat, fit:w.z, pol:w.pol, cov:w.cov, shape:w.key,
            margin:margin, rival:rival ? rival.key : null,
            agreed:results.filter(function (r) { return r !== w && sameFraming(w, r); })
                          .map(function (r) { return r.key; }),
            runners:results.map(function (r) {
              return r.key + " " + r.score.toFixed(2) + "/p" + r.pol.toFixed(2)
-                  + "@" + r.span.toFixed(0) + "\u00b0";
+                  + "/c" + r.cov.toFixed(2) + "@" + r.span.toFixed(0) + "\u00b0";
            }),
            kmPerPx:40075 / (c0.A / E.f) };
 }
@@ -2508,17 +2836,19 @@ function drawBulletin() {
      observed figures and always carrying the word "forecast". */
   var sw = stopWord();
   if (sw) {
-    var sy = HEAD + MAP - 8;
+    /* Was too faint, too long, and sat almost on the divider. The word
+       "Forecast" plus the model name says everything the old four-clause
+       line said; the timestamp stays because a forecast without its issue
+       time is a guess. Lifted clear of the rule and darkened a step. */
+    var sy = HEAD + MAP - 22;
     var st1 = el("text", { x:W - 22, y:sy, "font-size":12, "text-anchor":"end",
       fill:sw.dim ? "#8a8e9e" : "#101014", "font-weight":sw.dim ? 400 : 700 });
     st1.textContent = sw.t;
     svg.appendChild(st1);
-    var st2 = el("text", { x:W - 22, y:sy + 14, "font-size":10,
-      "text-anchor":"end", fill:"#8a8e9e" });
-    st2.textContent = T("stopNote")
-      + (STOP.n ? "  \u00b7  " + STOP.n + " " + T(STOP.src === "fav" ? "srcFav" : "srcDist") : "")
-      + "  \u00b7  ECMWF IFS 9km"
-      + (STOP.at ? "  \u00b7  " + T("stopFrom") + " " + mytClock(STOP.at) + " MYT" : "");
+    var st2 = el("text", { x:W - 22, y:sy + 13, "font-size":10,
+      "text-anchor":"end", fill:"#585d70" });
+    st2.textContent = "ECMWF IFS 9km " + T("stopNote")
+      + (STOP.at ? " \u00b7 " + mytClock(STOP.at) + " MYT" : "");
     svg.appendChild(st2);
   }
 
@@ -2655,7 +2985,7 @@ function render() {
     wrap.className += open ? " open" : "";
     wrap.innerHTML = "<h3><span class='caret'>\u203a</span>" +
       (grp.star ? "\u2b50 " : "") + grp.label +
-      " <em>" + wetN + "/" + grp.rows.length + "</em></h3>" +
+      " <em" + (wetN > 0 ? " class='wet'" : "") + ">" + wetN + "/" + grp.rows.length + "</em></h3>" +
       "<div class='grows'></div>";
     var body = wrap.querySelector(".grows");
     wrap.querySelector("h3").onclick = function () {
@@ -2697,6 +3027,7 @@ function render() {
     host.appendChild(wrap);
   });
   document.getElementById("sourceNote").textContent = T("source");
+  paintCred();
   /* Which copy am I looking at? file:// for quick iteration, Pages for the
      phone — without this it is easy to test a build you already replaced. */
   var bn = document.getElementById("buildNote");
@@ -2704,6 +3035,12 @@ function render() {
     + (location.protocol === "file:" ? "local file"
        : location.hostname || "local server")
     + (("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "  \u00b7  SW" : "");
+  paintQuick();                 /* a new paste changes who is over the line */
+  paintRegionHint();
+  /* the card just changed: drop the stale PNG and quietly rebuild it, so a
+     WhatsApp tap can share without waiting */
+  invalidatePngWarm();
+  setTimeout(prewarmPng, 0);
 }
 
 /* ══ share ══ */
@@ -2900,38 +3237,335 @@ function rainRosterText() {
   return L.join("\n");
 }
 
+/* Can this browser hand a PNG to another app? Probed with an empty file so the
+   answer is known while the tap gesture is still alive — Safari will not accept
+   a clipboard write or a share that starts after an await. */
+/* navigator.share() must be called while the tap that triggered it still
+   counts as user activation. Rasterising first spends that activation on
+   img.onload + toBlob, and iOS then rejects the share with NotAllowedError —
+   which is why the sheet never appeared. So the bulletin PNG is rendered
+   ahead of time, right after the card is drawn, and the share call happens
+   synchronously inside the tap. WeatherNext solved the same problem with a
+   two-tap cache; pre-warming makes the first tap work instead. */
+var PNGWARM = null, PNGWARMING = false;
+function invalidatePngWarm() { PNGWARM = null; }
+function prewarmPng() {
+  if (PNGWARM || PNGWARMING) return;
+  if (!document.getElementById("bulletin")) return;
+  PNGWARMING = true;
+  try {
+    renderPng(function (b) { PNGWARM = b || null; PNGWARMING = false; });
+  } catch (e) { PNGWARMING = false; }
+}
+
+function isMobileUA() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+
+function canShareFiles() {
+  try {
+    var probe = new File([new Blob([""], { type:"image/png" })], "p.png", { type:"image/png" });
+    return !!(navigator.share && navigator.canShare && navigator.canShare({ files:[probe] }));
+  } catch (e) { return false; }
+}
+
+/* Last resort: no file sharing, no image clipboard. Text goes to the composer
+   and the PNG downloads — this is the path that produces two messages, so it
+   is only ever reached when the browser can do nothing better. */
 function waFallback(blob, name, text) {
-  var isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  var isMobile = isMobileUA();
   var waUrl = (isMobile ? "https://wa.me/?text=" : "https://web.whatsapp.com/send?text=")
             + encodeURIComponent(text);
   var wa = null;
   try { wa = window.open(waUrl, "_blank", "noopener,noreferrer"); } catch (e) { wa = null; }
-  downloadPng(blob, name);
+  if (blob) downloadPng(blob, name);
   toast(wa ? T("waReady") : T("waBlocked"));
 }
 
-function shareWhatsApp(detailed) {
+/* Desktop: WhatsApp Web has no way to receive a file from a URL, so a prefilled
+   ?text= can only ever become its own message — that is the two-message split.
+   Instead put BOTH flavours on the clipboard in one write: pasting into the
+   chat gives the image (WhatsApp opens its editable preview with a caption
+   box), pasting again inside that caption box gives the text. One message,
+   image with caption, same as the mobile sheet. */
+function waClipboardRoute(blobP, text) {
+  if (isMobileUA()) return false;       /* WhatsApp Web is desktop-only */
+  /* Two field failures taught this shape. A ClipboardItem with image+text
+     never fills the caption (pasting there attaches another image), and the
+     /send?text= composer prefill sends the text FIRST as its own message on
+     his build. Chrome also refuses clipboard writes from an unfocused tab,
+     so the app cannot swap the clipboard behind WhatsApp's back. What works
+     on every build is sequenced clipboards, driven by the person: image on
+     the clipboard, paste it; come back, one tap on 复制文字, paste the
+     caption. The dialog stays open as that second step. */
+  var route = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+      var item = new ClipboardItem({
+        "image/png": blobP.then(function (b) { return b || Promise.reject(new Error("png")); })
+      });
+      route = "step";
+      navigator.clipboard.write([item]).then(function () {
+        var wa = null;
+        try { wa = window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer"); } catch (e) {}
+        toast(wa ? T("waDeskStep") : T("waBlocked"));
+      }).catch(function () {
+        blobP.then(function (b) { copyPlain(text); waFallback(b, pngName(), text); });
+      });
+    }
+  } catch (e) { route = false; }
+  return route;
+}
+
+/* Tapping a WhatsApp button opens this app's own preview: the exact image and
+   the exact text that will go out, with the text editable so a note can be
+   added before sending. Send dispatches, Cancel sends nothing. The dispatch
+   itself is unchanged — and because Send is its own tap, the share sheet still
+   opens inside a live user activation. */
+var WAIMGURL = null;
+/* Quick view: only the favourites actually being rained on hard enough to
+   matter — 2.5 mm/h is the moderate-rain line, the point where a farmer stops
+   what he is doing. Separate from the roster on purpose: the roster answers
+   "how is everywhere", this answers "who needs to know now". Toggled, session
+   only, and never part of the broadcast text. */
+var QUICK_MM = 2.5;
+var QUICK_OPEN = false;
+
+function quickRows() {
+  var out = [], seen = {};
+  liveFavs().forEach(function (f) {
+    var pi = pointInfo(f.la, f.lo);
+    if (!pi || !pi.seen || !pi.step) return;
+    if (pi.mm == null || pi.mm < QUICK_MM) return;
+    var key = f.n + "|" + f.la.toFixed(5) + "," + f.lo.toFixed(5);
+    if (seen[key]) return;                /* grouped duplicates are one place */
+    seen[key] = 1;
+    out.push({ f:f, pi:pi, d:districtAt(f.lo, f.la) });
+  });
+  return out;
+}
+
+/* ══ Credits & Acknowledgements footnote ═══════════════════════════
+   Collapsible, expanded on first launch and persistently collapsed once the
+   person closes it. Carries a QR to the app's own address so a farmer can
+   scan a forwarded screenshot and land here. The QR matrix is PRECOMPUTED
+   for the fixed URL and embedded — no library, no network. If the URL ever
+   changes, regenerate with python-qrcode (EC level M, border 0) and replace
+   QR_N / QR_ROWS. */
+var CRED_URL = "https://stanleywoosweeleong.github.io/rainbulletin/";
+var QR_N = 33;
+var QR_ROWS = [
+"111111101110100010111001001111111",
+"100000101001001011000011001000001",
+"101110100100011100111010101011101",
+"101110101001000100100011101011101",
+"101110100100110011100000101011101",
+"100000100111010110100000101000001",
+"111111101010101010101010101111111",
+"000000001000100111110011100000000",
+"101101110111101111100100001001011",
+"111010001100111011111011001101101",
+"100111100101110000100011001111011",
+"010101011001100101001011111101000",
+"110011100000001010000011010011010",
+"100101010110111000001100100101010",
+"110111111010000000111010001100100",
+"000101011101000100111111111010100",
+"111101101100011000110111011011100",
+"110011011110110110001001101011001",
+"100001110001010110101110000110110",
+"010011000010000111111011011010001",
+"010010101000011010010100000001111",
+"110111001011010110010111001101001",
+"001101111111010101101111001111111",
+"010001010011111100101001101101001",
+"101010111010011001011011111110000",
+"000000001100011110010001100011000",
+"111111101111110011111001101010000",
+"100000101011000011111101100011100",
+"101110100010110111111111111110111",
+"101110101111100011001110000100101",
+"101110101010011111001011111101100",
+"100000100100010001101011100110001",
+"111111101011100011100101000010100"
+];
+
+function credQrSvg() {
+  /* one path, all dark modules; 4-module white quiet zone so any phone
+     camera reads it off the dark page */
+  var q = 4, s = QR_N + q * 2, d = "";
+  for (var y = 0; y < QR_N; y++)
+    for (var x = 0; x < QR_N; x++)
+      if (QR_ROWS[y].charAt(x) === "1")
+        d += "M" + (x + q) + " " + (y + q) + "h1v1h-1z";
+  return '<svg viewBox="0 0 ' + s + " " + s + '" width="104" height="104" role="img" aria-label="QR">'
+       + '<rect width="' + s + '" height="' + s + '" fill="#fff" rx="2"/>'
+       + '<path d="' + d + '" fill="#000"/></svg>';
+}
+
+var CRED_OPEN = store.get("credOpen", true);
+function paintCred() {
+  var body = document.getElementById("credBody");
+  var car = document.getElementById("credCaret");
+  if (!body) return;
+  body.hidden = !CRED_OPEN;
+  car.style.transform = CRED_OPEN ? "rotate(90deg)" : "rotate(0deg)";
+  document.getElementById("credHead").setAttribute("aria-expanded", CRED_OPEN ? "true" : "false");
+  if (CRED_OPEN) {
+    var host = document.getElementById("credQr");
+    if (!host.firstChild) {
+      host.innerHTML = '<a href="' + CRED_URL + '" target="_blank" rel="noopener" style="line-height:0">'
+        + credQrSvg() + "</a>"
+        + '<div class="hint" style="margin:0">' + T("qrHint")
+        + '<br><span style="font-family:var(--mono);font-size:11px;word-break:break-all">'
+        + CRED_URL + "</span></div>";
+    } else {
+      var h = host.querySelector("div.hint");
+      if (h) h.firstChild.textContent = T("qrHint");
+    }
+  }
+}
+
+function paintQuick() {
+  var wrap = document.getElementById("quickWrap");
+  var btn  = document.getElementById("quickBtn");
+  btn.setAttribute("aria-pressed", QUICK_OPEN ? "true" : "false");
+  wrap.hidden = !QUICK_OPEN;
+  if (!QUICK_OPEN) return;
+  document.getElementById("quickHead").textContent = T("quickHead");
+  var host = document.getElementById("quick");
+  host.innerHTML = "";
+  var say = function (msg) {
+    var p = document.createElement("div");
+    p.className = "qnone"; p.textContent = msg;
+    host.appendChild(p);
+  };
+  /* say why the list is empty rather than showing a bare empty box */
+  if (!RADAR) { say(T("quickNoRadar")); return; }
+  if (!RADAR.rates) { say(T("quickNoRate")); return; }
+  var rows = quickRows();
+  if (!rows.length) { say(T("quickNone")); return; }
+  var byState = {};
+  rows.forEach(function (r) {
+    var st = r.d ? r.d.state : "\u2014";
+    (byState[st] = byState[st] || []).push(r);
+  });
+  Object.keys(byState).sort().forEach(function (st) {
+    var h = document.createElement("div");
+    h.className = "qst"; h.textContent = stateName(st);
+    host.appendChild(h);
+    byState[st].sort(function (a, b) { return b.pi.mm - a.pi.mm; }).forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "qrow";
+      var n = document.createElement("span");
+      n.className = "qn"; n.textContent = r.f.n;
+      var d = document.createElement("span");
+      d.className = "qd"; d.textContent = r.d ? distName(r.d) : "";
+      var mm = document.createElement("span");
+      mm.className = "qmm";
+      mm.style.color = "var(--r" + Math.min(4, Math.max(0, r.pi.band)) + ")";
+      mm.textContent = (stepCapped(r.pi.step, r.pi.pal) ? "\u2265" : "")
+                     + fmtRate(r.pi.mm) + " mm/h";
+      row.appendChild(n); row.appendChild(d); row.appendChild(mm);
+      host.appendChild(row);
+    });
+  });
+}
+
+function waPreview(detailed) {
   var text = bulletinText();
   if (detailed) {
     var rr = rainRosterText();
     if (rr) text += "\n\n" + rr;
   }
-  copyPlain(text);                      /* inside the tap gesture, before any async */
-  renderPng(function (blob) {
-    if (!blob) return;                  /* renderPng already toasted */
-    var name = pngName(), file = null;
-    try { file = new File([blob], name, { type:"image/png" }); } catch (e) { file = null; }
-    if (file && navigator.share && navigator.canShare && navigator.canShare({ files:[file] })) {
+  document.getElementById("waTxt").value = text;
+  var img = document.getElementById("waImg");
+  img.removeAttribute("src");
+  var show = function (b) {
+    if (!b) return;                       /* renderPng already reported it */
+    PNGWARM = b;
+    if (WAIMGURL) { try { URL.revokeObjectURL(WAIMGURL); } catch (e) {} }
+    WAIMGURL = URL.createObjectURL(b);
+    img.src = WAIMGURL;
+  };
+  if (PNGWARM) show(PNGWARM); else renderPng(show);
+  document.getElementById("wa").showModal();
+}
+function waClose() {
+  document.getElementById("wa").close();
+  document.getElementById("waCopy").hidden = true;
+  var h = document.getElementById("waHint");
+  h.textContent = T("waEdit"); h.style.color = "";
+  if (WAIMGURL) { try { URL.revokeObjectURL(WAIMGURL); } catch (e) {} WAIMGURL = null; }
+}
+
+function shareWhatsApp(text) {
+  var warm = PNGWARM;
+  var blobP = warm ? Promise.resolve(warm) : new Promise(function (res) { renderPng(res); });
+
+
+  /* Phone (and any desktop OS with a share sheet): one send, image + caption,
+     with WhatsApp's own editable preview in between. */
+  if (canShareFiles()) {
+    copyPlain(text);                    /* safety net for builds that drop captions */
+    if (warm) {
+      /* still inside the tap — the sheet opens */
+      var f = null;
+      try { f = new File([warm], pngName(), { type:"image/png" }); } catch (e) { f = null; }
+      if (f) {
+        navigator.share({ files:[f], title:T("brandZh"), text:text })
+          .then(function () { toast(T("shared")); })
+          .catch(function (err) {
+            if (err && err.name === "AbortError") return;
+            if (err && err.name === "NotAllowedError") { toast(T("waAgain")); prewarmPng(); return; }
+            waFallback(warm, pngName(), text);
+          });
+        return;
+      }
+    }
+    /* cold cache: rasterise, then share. Browsers that still hold activation
+       (Android Chrome, desktop) go straight through; a stricter one says
+       NotAllowedError and the next tap — with the cache now warm — works. */
+    blobP.then(function (blob) {
+      if (!blob) return;                /* renderPng already said so */
+      PNGWARM = blob;
+      var file;
+      try { file = new File([blob], pngName(), { type:"image/png" }); } catch (e) { file = null; }
+      if (!file) { waFallback(blob, pngName(), text); return; }
       navigator.share({ files:[file], title:T("brandZh"), text:text })
         .then(function () { toast(T("shared")); })
         .catch(function (err) {
           if (err && err.name === "AbortError") return;   /* user closed the sheet */
-          waFallback(blob, name, text);
+          if (err && err.name === "NotAllowedError") { toast(T("waAgain")); return; }
+          waFallback(blob, pngName(), text);
         });
-      return;
-    }
-    waFallback(blob, name, text);
-  });
+    });
+    return;
+  }
+
+  /* Sharing and the image clipboard both need a secure context; from file://
+     neither exists, so say so rather than silently doing something lesser. */
+  if (!window.isSecureContext) toast(T("waHttps"));
+
+  /* Phone without file sharing (in-app browser, file://, older WebView):
+     hand off to the WhatsApp APP via wa.me — never WhatsApp Web, which on a
+     phone is a dead end telling you to open a computer. The picture is saved
+     to the camera roll / downloads so it can be attached in the chat. */
+  if (isMobileUA()) {
+    var waUrl = "https://wa.me/?text=" + encodeURIComponent(text);
+    var wa = null;
+    try { wa = window.open(waUrl, "_blank", "noopener,noreferrer"); } catch (e) { wa = null; }
+    if (!wa) { try { location.href = waUrl; wa = true; } catch (e) {} }
+    blobP.then(function (b) { if (b) downloadPng(b, pngName()); });
+    copyPlain(text);
+    toast(wa ? T("waApp") : T("waBlocked"));
+    return;
+  }
+
+  /* Desktop browsers: clipboard route, started inside the gesture. */
+  var deskRoute = waClipboardRoute(blobP, text);
+  if (deskRoute) return true;   /* desktop: the dialog stays open as step 2 */
+
+  copyPlain(text);
+  blobP.then(function (blob) { waFallback(blob, pngName(), text); });
 }
 
 /* ══ favourites editor ══ */
@@ -3019,6 +3653,20 @@ var TIMEMODE = store.get("timeMode", "shot"); /* "shot" or "paste" */
 
 function runRegistration() {
   if (!IMGC) return;
+  /* Identify the source the moment the image arrives — NOT after a
+     calibration is accepted. This lived in addLayer(), which only runs on a
+     successful registration, so the one situation where knowing the source
+     matters most — a paste the matcher is struggling with — was exactly the
+     situation where detection never executed. The legend does not care
+     whether the coastline matched. */
+  var srcId = null;
+  try { srcId = detectSource(IMGX, IMGC.width, IMGC.height); } catch (e) { srcId = null; }
+  LASTSRC = srcId;
+  if (srcId && srcId.app && knownSources().indexOf(srcId.palette) >= 0
+      && srcId.palette !== ZRSEL) {
+    ZRSEL = srcId.palette; store.set("zrSel", ZRSEL);
+  }
+  paintZR();
   var rec = null;
   try { rec = recallCal(IMGX, IMGC.width, IMGC.height); } catch (e) { rec = null; }
   if (rec) {
@@ -3037,7 +3685,15 @@ function runRegistration() {
   var r = null;
   try { r = registerImage(IMGX, IMGC.width, IMGC.height); } catch (e) { r = null; }
   LASTREG = r;
-  AUTOCAL = (r && r.fit >= 2.0 && r.margin >= 1.12) ? r : null;
+  /* A region that is mostly off-frame is not a match, however crisp the
+     edges it did find. 0.55 keeps genuine part-cropped captures (a phone
+     screenshot always loses a little coast) while rejecting fragments. */
+  /* When the region is named there is nothing left to be ambiguous WITH, so
+     margin stops being evidence — fit and framing still have to hold up. */
+  /* Coverage no longer gates either: on a full-screen capture every region
+     fits somewhere, so it rejected good matches without catching bad ones. */
+  AUTOCAL = (r && r.fit >= 2.0 &&
+             (REGION_HINT !== "auto" || r.margin >= 1.12)) ? r : null;
   if (AUTOCAL) { SHOWCOAST = true; document.getElementById("calCoast").setAttribute("aria-pressed", "true"); }
   drawCal(); paintAnchors();
   if (AUTOCAL && (BATCH || QUEUE.length)) {
@@ -3065,6 +3721,8 @@ function currentCal() {
       return { wx:wmx(a.lon), wy:wmy(a.lat), px:a.px, py:a.py };
     }));
   }
+  if (ALIGNCAL) return ALIGNCAL;
+  if (ALIGN) return alignImageCal();
   return AUTOCAL;
 }
 
@@ -3126,6 +3784,167 @@ function loadImage(src) {
   im.src = src;
 }
 
+/* ══ Passport-photo calibration ═══════════════════════════════════
+   The two-anchor fallback asked a person to name a pixel — the wrong job for
+   a person. Here the human does what humans are good at (recognising "that
+   is roughly it") and the machine does what it is provably good at (the last
+   few pixels). The SCREENSHOT stays put at its natural size; the red region
+   outline is what the finger drags and pinches onto it — moving the small
+   object onto the big one, not the reverse, which was v4.27.0's mistake and
+   made every adjustment a long march. When auto found a candidate, the
+   outline starts there, so the human is often one nudge from done. ALIGN,
+   while the mode is on, IS the live calibration in full-image pixels. */
+var ALIGN = null, ALIGNE = null, ALIGNCAL = null;
+
+function alignRegion() { return REGION_HINT !== "auto" ? REGION_HINT : "west"; }
+
+var ALIGNPTS = null;   /* coarse outline of the current region, for guardrails */
+function alignPts() {
+  var key = alignRegion();
+  if (!ALIGNPTS || ALIGNPTS.key !== key) ALIGNPTS = { key:key, pts:coastWorld(220, key) };
+  return ALIGNPTS.pts;
+}
+
+/* what fraction of the outline a given cal leaves inside the screenshot */
+function alignVisible(cal) {
+  var pts = alignPts(), inside = 0;
+  for (var i = 0; i < pts.length; i++) {
+    var px = cal.A * pts[i][0] + cal.Bx, py = cal.A * pts[i][1] + cal.By;
+    if (px >= 0 && py >= 0 && px < IMGC.width && py < IMGC.height) inside++;
+  }
+  return pts.length ? inside / pts.length : 0;
+}
+
+/* the region outline fitted inside the screenshot — always visible */
+function alignFitCal() {
+  var pts = coastWorld(600, alignRegion()), x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (var i = 0; i < pts.length; i++) {
+    if (pts[i][0] < x0) x0 = pts[i][0]; if (pts[i][0] > x1) x1 = pts[i][0];
+    if (pts[i][1] < y0) y0 = pts[i][1]; if (pts[i][1] > y1) y1 = pts[i][1];
+  }
+  var A = Math.min(IMGC.width / (x1 - x0), IMGC.height / (y1 - y0)) * 0.9;
+  return { A:A, Bx:IMGC.width / 2 - A * (x0 + x1) / 2, By:IMGC.height / 2 - A * (y0 + y1) / 2 };
+}
+
+/* a starting cal: auto's answer only if it actually shows the outline —
+   a wrong auto cal was seeding the outline mostly off-frame, which is
+   unrecoverable by feel. A quarter in view is the floor for "useful". */
+function alignInitCal() {
+  var base = ALIGNCAL || AUTOCAL;
+  if (base && base.A) {
+    var cand = { A:base.A, Bx:base.Bx, By:base.By };
+    if (alignVisible(cand) >= 0.25) return cand;
+  }
+  return alignFitCal();
+}
+
+function alignImageCal() {
+  if (!ALIGN) return null;
+  return { A:ALIGN.A, Bx:ALIGN.Bx, By:ALIGN.By, shape:alignRegion(), manual:true };
+}
+function alignFromCal(cal) { ALIGN = { A:cal.A, Bx:cal.Bx, By:cal.By }; }
+
+function alignClear() {
+  ALIGN = null; ALIGNCAL = null; ALIGNE = null;
+  var b = document.getElementById("alignBar"); if (b) b.hidden = true;
+  var btn = document.getElementById("calAlign");
+  if (btn) btn.setAttribute("aria-pressed", "false");
+  var cv = document.getElementById("calCv"); if (cv) cv.style.touchAction = "";
+}
+
+function setAlign(on) {
+  if (!on) { alignClear(); drawCal(); return; }
+  var cv = document.getElementById("calCv");
+  /* The red line of a failed auto attempt must not linger under the align
+     outline — the person came here to escape that answer, not to squint past
+     it. One outline on screen: the one being dragged. */
+  SHOWCOAST = false;
+  var cb = document.getElementById("calCoast");
+  if (cb) cb.setAttribute("aria-pressed", "false");
+  ALIGN = alignInitCal();
+  ALIGNCAL = null; ALIGNE = null;
+  document.getElementById("alignBar").hidden = false;
+  document.getElementById("calAlign").setAttribute("aria-pressed", "true");
+  cv.style.touchAction = "none";
+  var t = document.getElementById("calFitTxt");
+  t.textContent = T("alignHint"); t.style.color = "var(--dim)";
+  document.getElementById("calApply").disabled = false;
+  drawCal();
+}
+
+/* pan in image px; zoom scales the outline by f about image point (mx,my).
+   Every step is clamped: a move that would leave less than 12% of the
+   outline on screen is refused, so the outline can drift to the edge but
+   never be lost off it. */
+function alignTry(next) {
+  if (alignVisible(next) < 0.12) return false;
+  ALIGN = next; drawCal(); return true;
+}
+function alignPan(dx, dy) {
+  if (!ALIGN) return;
+  alignTry({ A:ALIGN.A, Bx:ALIGN.Bx + dx, By:ALIGN.By + dy });
+}
+function alignZoom(f, mx, my) {
+  if (!ALIGN) return;
+  alignTry({ A:ALIGN.A * f,
+             Bx:mx + (ALIGN.Bx - mx) * f,
+             By:my + (ALIGN.By - my) * f });
+}
+
+function snapAlign() {
+  var cal = alignImageCal(); if (!cal) return;
+  if (!ALIGNE) {
+    ALIGNE = edgeMap(IMGX, IMGC.width, IMGC.height);
+    ALIGNE.D = distTransform(ALIGNE.bin, ALIGNE.w, ALIGNE.h);
+  }
+  /* No rain mask here, deliberately. The mask exists so the blind auto-search
+     is not punished for coastline it cannot see; in align mode a person has
+     already put the outline where it belongs, so within that vetted basin
+     every edge is signal — and on Rain Alarm's dark basemap the mask can
+     swallow the whole frame, leaving Snap nothing to climb. */
+  var E = { bin:ALIGNE.bin, w:ALIGNE.w, h:ALIGNE.h, f:ALIGNE.f, D:ALIGNE.D };
+  var key = alignRegion();
+  var pts = sceneWorld(1100).concat(coastWorld(900, key));
+  /* The person has DECLARED the framing; the auto-search floors (which
+     reject candidates with most points off-frame) must not veto it. Score
+     only the coastline actually visible in the declared frame. */
+  var seed = { A:cal.A * E.f, bx:cal.Bx * E.f, by:cal.By * E.f };
+  var vis = pts.filter(function (p) {
+    var px = seed.A * p[0] + seed.bx, py = seed.A * p[1] + seed.by;
+    return px > -E.w * 0.1 && py > -E.h * 0.1 && px < E.w * 1.1 && py < E.h * 1.1;
+  });
+  if (vis.length >= 40) pts = vis;
+  var best = { c:seed, v:-1 };
+  best.v = chamfer(E, pts, best.c);
+  [6, 3, 1.5, 0.7].forEach(function (step) {
+    var better = true;
+    while (better) {
+      better = false;
+      for (var dA = -1; dA <= 1; dA++) for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+        if (!dA && !dx && !dy) continue;
+        var A2 = best.c.A * (1 + dA * step * 0.004);
+        var c2 = { A:A2,
+                   bx:(best.c.bx - E.w / 2) * (A2 / best.c.A) + E.w / 2 + dx * step,
+                   by:(best.c.by - E.h / 2) * (A2 / best.c.A) + E.h / 2 + dy * step };
+        var v = chamfer(E, pts, c2);
+        if (v > best.v) { best = { c:c2, v:v }; better = true; }
+      }
+    }
+  });
+  var z = localContrast(E, pts, best.c);
+  ALIGNCAL = { A:best.c.A / E.f, Bx:best.c.bx / E.f, By:best.c.by / E.f,
+               fit:z, shape:key, manual:true };
+  alignFromCal(ALIGNCAL);
+  drawCal();
+  var t = document.getElementById("calFitTxt");
+  /* On soup-heavy basemaps the contrast score reads 0 even when the lock is
+     visibly right, so a number would only mislead — the person's eyes are
+     the acceptance test here. */
+  t.textContent = T("alignLocked") + (z > 0 ? "  \u00b7  z " + z.toFixed(2) : "");
+  t.style.color = "var(--dim)";
+  document.getElementById("calApply").disabled = false;
+}
+
 function drawCal() {
   if (!IMGC) return;
   var cv = document.getElementById("calCv");
@@ -3134,6 +3953,16 @@ function drawCal() {
   cv.height = Math.round(IMGC.height * sc);
   var x = cv.getContext("2d"), k = cv.width / IMGC.width;
   x.drawImage(IMGC, 0, 0, cv.width, cv.height);
+  if (ALIGN) {
+    var P = coastWorld(1500, alignRegion());
+    x.fillStyle = "#ff3b30";
+    for (var pi = 0; pi < P.length; pi++) {
+      var qx = (ALIGN.A * P[pi][0] + ALIGN.Bx) * k;
+      var qy = (ALIGN.A * P[pi][1] + ALIGN.By) * k;
+      x.fillRect(qx - 1.3, qy - 1.3, 2.6, 2.6);
+    }
+    return;
+  }
 
   var cal = currentCal();
   if (SHOWCOAST && cal) {
@@ -3237,8 +4066,10 @@ function paintAnchors() {
     t.textContent = T("shapeAt") + ": " + regionLabel(cal.shape)
       + "  \u00b7  " + T("fitCoast") + " " + cal.fit.toFixed(2) + "\u00d7"
       + "  \u00b7  " + T("margin") + " " + (isFinite(cal.margin) ? cal.margin.toFixed(2) + "\u00d7" : "\u2014")
+      + (cal.cov != null ? "  \u00b7  " + T("cover") + " " + Math.round(cal.cov * 100) + "%" : "")
       + "  \u00b7  " + cal.kmPerPx.toFixed(2) + " km/px  \u00b7  " + cal.span.toFixed(1) + "\u00b0";
-    t.style.color = (cal.fit >= 2.6 && cal.margin >= 1.3) ? "var(--dim)" : "var(--amber)";
+    t.style.color = (cal.fit >= 2.6 && cal.margin >= 1.3 && (cal.cov == null || cal.cov >= 0.7))
+                  ? "var(--dim)" : "var(--amber)";
     document.getElementById("calApply").disabled = false;
     return;
   }
@@ -3361,6 +4192,8 @@ function addLayer() {
   if (!cal || !IMGC) return;
   var basemap = BASEMAP;                       /* learned during registration */
   var fills = BASEFILLS.slice();               /* travels with the basemap */
+  /* Source was identified at paste time in runRegistration; here we only
+     need the palette match for reprojection. */
   var det = detectPalette(IMGX, IMGC.width, IMGC.height);
   var palette = det ? det.pal : null;
   var cells = reprojectImage(cal, IMGC, IMGX, basemap, palette, fills);
@@ -3384,6 +4217,7 @@ function addLayer() {
   STOP.fails = 0;                     /* a fresh paste earns a fresh forecast attempt */
   try { fetchStop(false); } catch (e) { /* the bulletin stands without it */ }
   IMGC = null; IMGX = null; ANCH = []; AUTO = 0; AUTOCAL = null; RECALLED = null; showManual(false);
+  alignClear();
   document.getElementById("calDrop").hidden = false;
   document.getElementById("calWork").hidden = true;
   if (!QUEUE.length) SHOT_AT = 0;
@@ -3402,6 +4236,7 @@ function dropLayer(i) {
 
 function clearRadar() {
   LAYERS = []; RADAR = null; IMGC = null; IMGX = null; ANCH = []; AUTOCAL = null; SHOWCOAST = false;
+  alignClear();
   document.getElementById("calDrop").hidden = false;
   document.getElementById("calWork").hidden = true;
   document.getElementById("calCoast").setAttribute("aria-pressed", "false");
@@ -3476,7 +4311,15 @@ function crossPairs() {
 }
 
 var ZRSEL = store.get("zrSel", "Windy");
-var ZR_OPEN = false;        /* tile grid expanded? session-only, like the roster */
+var ZR_OPEN = false;
+/* Which outline the next paste may match. Auto tries all three; naming the
+   region removes the other hypotheses entirely, which is the difference
+   between a hard problem and an easy one when a capture also contains
+   Sumatra, southern Thailand and a lot of open sea. Session-only: the next
+   screenshot may well be of somewhere else. */
+var REGION_HINT = "auto";
+var LASTSRC = null;         /* what the last paste's legend identified */
+/* tile grid expanded? session-only, like the roster */
 function allPairs() { return store.get("zrPairs", {}); }
 function zrPairs() { var a = allPairs(); return a[ZRSEL] || []; }
 function setZrPairs(v) { var a = allPairs(); a[ZRSEL] = v; store.set("zrPairs", a); }
@@ -3543,6 +4386,22 @@ function knownSources() {
   Object.keys(ZRS).forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
   return out;
 }
+function paintRegionHint() {
+  var host = document.getElementById("regHint");
+  if (!host) return;
+  host.innerHTML = "";
+  [["auto","hintAuto"], ["west","hintWest"], ["east","hintEast"], ["all","hintAll"]]
+    .forEach(function (o) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "srctile";
+      b.style.minHeight = "34px";
+      b.setAttribute("aria-pressed", REGION_HINT === o[0] ? "true" : "false");
+      b.textContent = T(o[1]);
+      b.onclick = function () { REGION_HINT = o[0]; paintRegionHint(); };
+      host.appendChild(b);
+    });
+}
+
 function paintZR() {
   var loaded = {};
   LAYERS.forEach(function (L) { if (L.palette) loaded[L.palette.name] = 1; });
@@ -3557,6 +4416,12 @@ function paintZR() {
     var hb = document.createElement("span");
     hb.className = "on"; hb.textContent = T("srcOn");
     head.appendChild(hb);
+  }
+  if (LASTSRC && LASTSRC.app && LASTSRC.palette === ZRSEL) {
+    var db = document.createElement("span");
+    db.className = "on"; db.style.color = "var(--r1)";
+    db.textContent = T("srcAuto") + " \u00b7 " + T(LASTSRC.layout === "mobile" ? "srcPhone" : "srcDesk");
+    head.appendChild(db);
   }
   var car = document.createElement("span");
   car.className = "caret"; car.textContent = "\u203a";
@@ -3996,6 +4861,31 @@ document.getElementById("paste").onclick = function () {
   document.getElementById("cal").showModal();
   if (IMGC) { drawCal(); paintAnchors(); }
 };
+/* One tap replaces Ctrl-V — the shortcut needs a keyboard, and the phone in
+   the field has none. Reads every image on the clipboard, so both the
+   Peninsula and the Borneo captures land from a single tap when the platform
+   holds more than one. Same ingestion path as the paste event. */
+document.getElementById("calPaste").onclick = function () {
+  if (!(navigator.clipboard && navigator.clipboard.read)) {
+    toast(T("pasteNoApi")); return;
+  }
+  navigator.clipboard.read().then(function (items) {
+    var jobs = [];
+    items.forEach(function (item) {
+      item.types.forEach(function (t) {
+        if (t.indexOf("image/") === 0) jobs.push(item.getType(t));
+      });
+    });
+    if (!jobs.length) { toast(T("pasteNone")); return; }
+    Promise.all(jobs).then(function (blobs) {
+      var files = blobs.map(function (b, i) {
+        return new File([b], "clipboard-" + (i + 1) + ".png", { type:b.type || "image/png" });
+      });
+      paintAnchorSel();
+      enqueueFiles(files);
+    });
+  }).catch(function () { toast(T("pasteDenied")); });
+};
 document.getElementById("calPick").onclick = function () { document.getElementById("calFile").click(); };
 document.getElementById("calFile").onchange = function (e) {
   if (e.target.files && e.target.files.length) enqueueFiles(e.target.files);
@@ -4030,6 +4920,60 @@ document.addEventListener("paste", function (e) {
       enqueueFiles(e.dataTransfer.files);
     }
   });
+})();
+
+/* align-mode gestures: drag pans, pinch or wheel zooms. Registered before
+   the anchor handlers so, in align mode, these take the pointer and stop the
+   event; anchor placement never sees it. */
+(function () {
+  var cv = document.getElementById("calCv"), PTRS = {};
+  function halt(e) { e.stopImmediatePropagation(); e.preventDefault(); }
+  function kx() { var r = cv.getBoundingClientRect(); return cv.width / r.width; }
+  cv.addEventListener("pointerdown", function (e) {
+    if (!ALIGN || !IMGC) return;
+    halt(e);
+    PTRS[e.pointerId] = { x:e.clientX, y:e.clientY };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  cv.addEventListener("pointermove", function (e) {
+    if (!ALIGN || !IMGC) return;
+    halt(e);
+    if (!(e.pointerId in PTRS)) return;
+    var kimg = kx() * (IMGC.width / document.getElementById("calCv").width);
+    var ids = Object.keys(PTRS);
+    if (ids.length === 1) {
+      var p = PTRS[e.pointerId];
+      alignPan((e.clientX - p.x) * kimg, (e.clientY - p.y) * kimg);
+      p.x = e.clientX; p.y = e.clientY;
+    } else if (ids.length === 2) {
+      var a = PTRS[ids[0]], b = PTRS[ids[1]];
+      var before = Math.hypot(a.x - b.x, a.y - b.y);
+      PTRS[e.pointerId] = { x:e.clientX, y:e.clientY };
+      var a2 = PTRS[ids[0]], b2 = PTRS[ids[1]];
+      var after = Math.hypot(a2.x - b2.x, a2.y - b2.y);
+      if (before > 4 && after > 4) {
+        var r = cv.getBoundingClientRect();
+        var mx = ((a2.x + b2.x) / 2 - r.left) * kimg;
+        var my = ((a2.y + b2.y) / 2 - r.top) * kimg;
+        alignZoom(after / before, mx, my);
+      }
+    }
+  });
+  ["pointerup", "pointercancel"].forEach(function (ev) {
+    cv.addEventListener(ev, function (e) {
+      if (!ALIGN) return;
+      halt(e);
+      delete PTRS[e.pointerId];
+    });
+  });
+  cv.addEventListener("wheel", function (e) {
+    if (!ALIGN || !IMGC) return;
+    halt(e);
+    var r = cv.getBoundingClientRect();
+    var kimg = kx() * (IMGC.width / cv.width);
+    alignZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1,
+              (e.clientX - r.left) * kimg, (e.clientY - r.top) * kimg);
+  }, { passive:false });
 })();
 
 /* tap to place an anchor, with a loupe for precision */
@@ -4092,8 +5036,46 @@ document.getElementById("calClearImg").onclick = function () { clearRadar(); };
   });
 })();
 document.getElementById("png").onclick  = savePng;
-document.getElementById("wa1").onclick  = function () { shareWhatsApp(false); };
-document.getElementById("wa2").onclick  = function () { shareWhatsApp(true);  };
+document.getElementById("credHead").onclick = function () {
+  CRED_OPEN = !CRED_OPEN; store.set("credOpen", CRED_OPEN); paintCred();
+};
+document.getElementById("calAlign").onclick = function () { setAlign(!ALIGN); };
+document.getElementById("alignIn").onclick = function () {
+  if (IMGC) alignZoom(1.15, IMGC.width / 2, IMGC.height / 2);
+};
+document.getElementById("alignOut").onclick = function () {
+  if (IMGC) alignZoom(1 / 1.15, IMGC.width / 2, IMGC.height / 2);
+};
+document.getElementById("alignReset").onclick = function () {
+  /* Reset means "show me the whole outline again", never "back to auto's
+     guess" — auto's guess may be exactly what the person is escaping. */
+  if (ALIGN) { ALIGNCAL = null; ALIGN = alignFitCal(); drawCal(); }
+};
+document.getElementById("alignSnap").onclick = function () { snapAlign(); };
+document.getElementById("quickBtn").onclick = function () {
+  QUICK_OPEN = !QUICK_OPEN; paintQuick();
+};
+document.getElementById("wa1").onclick  = function () { waPreview(false); };
+document.getElementById("wa2").onclick  = function () { waPreview(true);  };
+document.getElementById("waX").onclick      = waClose;
+document.getElementById("waCancel").onclick = waClose;
+document.getElementById("waSend").onclick   = function () {
+  var t = document.getElementById("waTxt").value;
+  var keepOpen = shareWhatsApp(t);
+  if (keepOpen) {
+    document.getElementById("waCopy").hidden = false;
+    var h = document.getElementById("waHint");
+    h.textContent = T("waDeskStep"); h.style.color = "var(--amber)";
+  } else {
+    waClose();
+  }
+};
+document.getElementById("waCopy").onclick = function () {
+  copyPlain(document.getElementById("waTxt").value);
+  var h = document.getElementById("waHint");
+  h.textContent = T("waCopied2"); h.style.color = "var(--dim)";
+  toast(T("waCopied"));
+};
 document.getElementById("pins").onclick = function () {
   PINS = PINS ? 0 : 1; store.set("pins", PINS); paintBtns(); render();
 };
