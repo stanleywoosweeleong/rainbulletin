@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1020">
 <link rel="manifest" href="./manifest.json">
+<!-- Without these the browser probes /favicon.ico and logs a 404 on every load;
+     GitHub Pages has no such file and the app already ships an SVG icon. -->
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
 <title>雨情 · RainBulletin</title>
 <style>
 /* ── tokens ─────────────────────────────────────────────
@@ -166,10 +170,18 @@ dialog{
   padding:0;width:min(560px,94vw);max-height:86vh
 }
 dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
-.dlg{padding:16px}
-.dlg h3{margin:0 0 12px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--mono);color:var(--dim);font-weight:500}
-.fld{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:center;margin-bottom:8px}
-.fld label{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);letter-spacing:.06em}
+.dlg{padding:20px 20px 18px}
+/* Vertical rhythm: rows breathe at 14px, a section heading opens with 22px
+   above it, and the hint under a row hugs that row (6px) instead of floating
+   between two of them — the dialog read as one dense block before. */
+.dlg h3{margin:0 0 14px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-family:var(--mono);color:var(--dim);font-weight:500}
+.dlg h3 + .fld{margin-top:2px}
+.dlg .fld + .fld{margin-top:2px}
+.dlg .hint{margin:6px 0 14px}
+.dlg .fld ~ h3{margin-top:22px}
+.dlg .list{margin-top:4px}
+.fld{display:grid;grid-template-columns:76px 1fr;gap:10px;align-items:center;margin-bottom:14px}
+.fld label,.fld .lab{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);letter-spacing:.06em}
 input,textarea,select{
   width:100%;background:#0d0f1c;border:1px solid var(--line);color:var(--text);
   border-radius:2px;padding:7px 9px;font-family:var(--mono);font-size:12.5px
@@ -188,7 +200,7 @@ button.srchead{
 button.srchead:hover{border-color:#454d80}
 button.srchead .caret{margin-left:auto;color:var(--dim);transition:transform .12s ease}
 button.srchead[aria-expanded="true"] .caret{transform:rotate(90deg)}
-.srctiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:6px}
+.srctiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px;margin-top:8px}
 .srctiles[hidden]{display:none}
 button.srctile{
   background:var(--steel);border:1px solid var(--line);color:var(--text);
@@ -276,7 +288,8 @@ dialog#cal{width:min(940px,96vw)}
   .mast h1.zh{letter-spacing:.16em}
   .mast .sub{font-size:11.5px;letter-spacing:.04em}
   .row{grid-template-columns:12px 1fr auto;gap:8px}
-  .fld{grid-template-columns:1fr}
+  .fld{grid-template-columns:1fr;gap:6px;margin-bottom:16px}
+  .dlg{padding:16px 14px}
 }
 </style>
 </head>
@@ -340,9 +353,9 @@ dialog#cal{width:min(940px,96vw)}
 
 <dialog id="dlg"><div class="dlg">
   <h3 data-i="dlgTitle">收藏点管理</h3>
-  <div class="fld"><label data-i="fName">名称</label><input id="fName"></div>
-  <div class="fld"><label data-i="fLat">纬度 Lat</label><input id="fLat" inputmode="decimal"></div>
-  <div class="fld"><label data-i="fLon">经度 Lon</label><input id="fLon" inputmode="decimal"></div>
+  <div class="fld"><label for="fName" data-i="fName">名称</label><input id="fName"></div>
+  <div class="fld"><label for="fLat" data-i="fLat">纬度 Lat</label><input id="fLat" inputmode="decimal"></div>
+  <div class="fld"><label for="fLon" data-i="fLon">经度 Lon</label><input id="fLon" inputmode="decimal"></div>
   <div class="foot">
     <button class="tool" id="fHere" data-i="btnHere">用当前位置</button>
     <button class="tool go" id="fAdd" data-i="btnAdd">加入</button>
@@ -352,12 +365,12 @@ dialog#cal{width:min(940px,96vw)}
     <div class="list" id="fBin"></div>
     <div class="foot"><button class="tool" id="fPurge" data-i="btnPurge">彻底清除</button></div>
   </div>
-  <div class="fld" style="margin-top:14px"><label data-i="fFind">查找</label>
+  <div class="fld" style="margin-top:14px"><label for="fFind" data-i="fFind">查找</label>
     <input id="fFind" placeholder="Sg. Ruan / 劳勿 / Raub" spellcheck="false"></div>
   <p class="hint" id="fCount"></p>
   <div class="list" id="fList"></div>
   <p class="hint" data-i="ioHint">批量：每行一个 <code>名称, 纬度, 经度</code></p>
-  <textarea id="io" spellcheck="false"></textarea>
+  <textarea id="io" spellcheck="false" data-aria="ariaIo"></textarea>
   <div class="foot">
     <button class="tool" id="fLoad" data-i="btnLoad">从文本载入</button>
     <button class="tool" id="fDump" data-i="btnDump">导出到文本</button>
@@ -371,25 +384,25 @@ dialog#cal{width:min(940px,96vw)}
     <span data-i="dlgZR" style="flex:1">雨量校准 · Z–R</span>
     <button class="x" id="zrX" aria-label="close" style="font-size:20px">×</button>
   </h3>
-  <div class="fld"><label data-i="zrSrc">雷达来源</label>
+  <div class="fld"><span class="lab" data-i="zrSrc">雷达来源</span>
     <div class="srcpick">
       <button type="button" class="srchead" id="zrHead" aria-expanded="false"></button>
       <div class="srctiles" id="zrTiles" hidden></div>
     </div></div>
   <p class="hint" id="zrNow"></p>
-  <div class="fld"><label data-i="zrPreset">预设</label>
+  <div class="fld"><span class="lab" data-i="zrPreset">预设</span>
     <div class="bar" id="zrPresets" style="margin:0"></div></div>
-  <div class="fld"><label>Z = a·R^b</label>
+  <div class="fld"><span class="lab">Z = a·R^b</span>
     <div style="display:flex;gap:8px">
-      <input id="zrA" inputmode="decimal" placeholder="250">
-      <input id="zrB" inputmode="decimal" placeholder="1.2">
-      <input id="zrCap" inputmode="decimal" placeholder="53">
+      <input id="zrA" inputmode="decimal" placeholder="250" data-aria="ariaZrA">
+      <input id="zrB" inputmode="decimal" placeholder="1.2" data-aria="ariaZrB">
+      <input id="zrCap" inputmode="decimal" placeholder="53" data-aria="ariaZrCap">
     </div></div>
   <p class="hint" data-i="zrHint">a · b · 封顶 dBZ</p>
 
-  <h3 style="margin-top:16px" data-i="zrPairs">实测对照（雨量计 vs 雷达）</h3>
-  <div class="fld"><label data-i="zrGauge">实测 mm/h</label><input id="zrG" inputmode="decimal" placeholder="18"></div>
-  <div class="fld"><label data-i="zrDbz">当时 dBZ</label><input id="zrD" inputmode="decimal" placeholder="42.5"></div>
+  <h3 data-i="zrPairs">实测对照（雨量计 vs 雷达）</h3>
+  <div class="fld"><label for="zrG" data-i="zrGauge">实测 mm/h</label><input id="zrG" inputmode="decimal" placeholder="18"></div>
+  <div class="fld"><label for="zrD" data-i="zrDbz">当时 dBZ</label><input id="zrD" inputmode="decimal" placeholder="42.5"></div>
   <div class="foot"><button class="tool go" id="zrAdd" data-i="btnAdd">加入</button></div>
   <div class="list" id="zrList"></div>
   <p class="hint" id="zrFit"></p>
@@ -409,9 +422,9 @@ dialog#cal{width:min(940px,96vw)}
     <span data-i="dlgCal" style="flex:1">贴图定位 · 重投影</span>
     <button class="x" id="calX" aria-label="close" style="font-size:20px">×</button>
   </h3>
-  <div class="fld" style="grid-template-columns:1fr"><label data-i="layers">图层</label></div>
+  <div class="fld" style="grid-template-columns:1fr"><span class="lab" data-i="layers">图层</span></div>
   <div class="list" id="lyrList" style="margin:0 0 10px"></div>
-  <div class="fld" style="margin-bottom:12px"><label data-i="calSens">灵敏度</label>
+  <div class="fld" style="margin-bottom:12px"><span class="lab" data-i="calSens">灵敏度</span>
     <div class="bar" id="calSensBar" style="margin:0"></div></div>
   <div class="drop" id="calDrop">
     <span data-i="calDrop">粘贴截图（⌘V / Ctrl-V）、拖入，或选择图片</span><br>
@@ -421,13 +434,13 @@ dialog#cal{width:min(940px,96vw)}
       <button class="tool" id="calPick" data-i="calPick">选图片</button>
     </div>
     <input type="file" id="calFile"
-           accept="image/png,image/jpeg,image/webp" multiple hidden>
+           accept="image/png,image/jpeg,image/webp" multiple hidden data-aria="ariaFile">
   </div>
   <div id="calWork" hidden>
     <div class="cvwrap"><canvas id="calCv"></canvas>
       <div class="rail l" aria-hidden="true"></div>
       <div class="rail r" aria-hidden="true"></div></div>
-    <div class="fld"><label data-i="calRegion">图幅范围</label>
+    <div class="fld"><span class="lab" data-i="calRegion">图幅范围</span>
       <div class="srctiles" id="regHint" style="margin-top:0"></div></div>
     <div class="brow" id="alignBar" hidden style="grid-template-columns:repeat(4,1fr);margin:8px 0 0">
       <button class="tool" id="alignOut" data-i="aZoomOut">缩小</button>
@@ -436,12 +449,12 @@ dialog#cal{width:min(940px,96vw)}
       <button class="tool go" id="alignSnap" data-i="btnSnap">吸附</button>
     </div>
     <div id="calManualBox" hidden>
-  <div class="fld"><label data-i="calAnchors">定位点</label><select id="calSel"></select></div>
+  <div class="fld"><label for="calSel" data-i="calAnchors">定位点</label><select id="calSel"></select></div>
       <p class="hint" data-i="calTap">在截图上点击地标位置，至少两个</p>
       <div class="list" id="calList"></div>
     </div>
     <p class="hint" id="calFitTxt"></p>
-    <div class="fld"><label data-i="calTime">图内时间</label>
+    <div class="fld"><span class="lab" data-i="calTime">图内时间</span>
       <div class="bar" id="calTimeBar" style="margin:0"></div></div>
     <div class="foot">
       <button class="tool" id="calCoast" aria-pressed="false" data-i="calCoast">叠示海岸线校对</button>
@@ -463,7 +476,7 @@ dialog#cal{width:min(940px,96vw)}
   </h3>
   <div class="wapre" id="waPre"><img id="waImg" alt=""></div>
   <p class="hint" id="waHint" data-i="waEdit">发送前可修改文字</p>
-  <textarea id="waTxt" spellcheck="false" rows="10"></textarea>
+  <textarea id="waTxt" spellcheck="false" rows="10" data-aria="ariaWaTxt"></textarea>
   <div class="foot" style="border-top:1px solid var(--line);padding-top:12px;margin-top:14px">
     <button class="tool" id="waCancel" data-i="btnCancel">取消</button>
     <button class="tool" id="waCopy" data-i="waCopy" hidden>复制文字</button>
@@ -525,7 +538,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.29.0-20260728";
+var CACHE_VERSION = "rbmy-v4.29.2-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -728,6 +741,8 @@ var I18N = {
     calDrop:"\u7c98\u8d34\u622a\u56fe\uff08\u2318V / Ctrl-V\uff09\u3001\u62d6\u5165\uff0c\u6216\u9009\u62e9\u56fe\u7247",
     calPasteBtn:"\u7c98\u8d34", pasteNone:"\u526a\u8d34\u677f\u4e2d\u6ca1\u6709\u56fe\u7247",
     qrHint:"\u626b\u7801\u6253\u5f00\u672c\u5e94\u7528",
+    ariaIo:"\u6536\u85cf\u70b9\u6587\u672c", ariaZrA:"Z-R \u7cfb\u6570 a", ariaZrB:"Z-R \u6307\u6570 b",
+    ariaZrCap:"dBZ \u4e0a\u9650", ariaWaTxt:"WhatsApp \u6587\u5b57", ariaFile:"\u9009\u62e9\u56fe\u7247",
     pasteDenied:"\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f", pasteNoApi:"\u6b64\u73af\u5883\u4e0d\u652f\u6301\u8bfb\u53d6\u526a\u8d34\u677f",
     calPick:"\u9009\u56fe\u7247", calTap:"\u5728\u622a\u56fe\u4e0a\u70b9\u51fb\u5730\u6807\u4f4d\u7f6e\uff0c\u81f3\u5c11\u4e24\u4e2a",
     calAnchors:"\u5b9a\u4f4d\u70b9", calFit:"\u8bef\u5dee", calNeed:"\u9700\u8981\u81f3\u5c11 2 \u4e2a\u5b9a\u4f4d\u70b9",
@@ -803,6 +818,8 @@ var I18N = {
     calDrop:"Paste a screenshot (\u2318V / Ctrl-V), drop one in, or choose a file",
     calPasteBtn:"Paste", pasteNone:"No image on the clipboard",
     qrHint:"Scan to open this app",
+    ariaIo:"Favourites as text", ariaZrA:"Z-R coefficient a", ariaZrB:"Z-R exponent b",
+    ariaZrCap:"dBZ cap", ariaWaTxt:"WhatsApp message text", ariaFile:"Choose an image",
     pasteDenied:"Clipboard read not allowed", pasteNoApi:"Clipboard reading unavailable here",
     calPick:"Choose image", calTap:"Tap each landmark where it sits on your screenshot \u2014 two or more",
     calAnchors:"Anchors", calFit:"Fit error", calNeed:"Needs at least 2 anchors",
@@ -4773,6 +4790,12 @@ function applyLang() {
   document.getElementById("lang").textContent = LANG === "zh" ? "EN" : "中文";
   [].forEach.call(document.querySelectorAll("[data-i]"), function (n) {
     var v = I18N[LANG][n.getAttribute("data-i")]; if (v) n.textContent = v;
+  });
+  /* Fields with no visible label carry their accessible name here, so it
+     switches language with everything else instead of being frozen English. */
+  [].forEach.call(document.querySelectorAll("[data-aria]"), function (n) {
+    var v = I18N[LANG][n.getAttribute("data-aria")];
+    if (v) n.setAttribute("aria-label", v);
   });
   document.getElementById("io").placeholder = T("ioHint");
   /* One name per language: 雨情 in Chinese, RAINBULLETIN in English — showing
