@@ -100,6 +100,19 @@ button.tool.go{background:var(--jmm);border-color:var(--jmm);color:#fff;font-wei
 button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight:700}
 #quickWrap[hidden]{display:none}
 #credBody[hidden]{display:none}
+#credGuide{margin:2px 0 16px}
+#credGuide h4{margin:0 0 10px;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
+  font-family:var(--mono);color:var(--dim);font-weight:500}
+#credGuide ol{margin:0;padding:0;list-style:none;counter-reset:g}
+#credGuide ol li{counter-increment:g;position:relative;padding:0 0 9px 26px;font-size:13px;line-height:1.5}
+#credGuide ol li::before{content:counter(g);position:absolute;left:0;top:1px;width:18px;height:18px;
+  border-radius:9px;background:var(--accent);color:#fff;font-family:var(--mono);font-size:11px;
+  font-weight:700;display:flex;align-items:center;justify-content:center}
+#credGuide ol li b{color:var(--text);font-weight:700}
+#credGuide ol li span{color:var(--dim)}
+#credGuide ul{margin:4px 0 0;padding-left:16px;list-style:none}
+#credGuide ul li{position:relative;padding:0 0 5px 0;font-size:12.5px;color:var(--dim);line-height:1.5}
+#credGuide ul li::before{content:"\00b7";position:absolute;left:-12px;color:var(--dim)}
 #quick{border:1px solid var(--line);border-radius:3px;background:#0d0f1c;padding:4px 0;margin-bottom:6px}
 #quick .qst{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.06em;
   padding:7px 11px 3px;border-top:1px solid var(--line)}
@@ -354,6 +367,7 @@ dialog#cal{width:min(940px,96vw)}
     <span class="caret" id="credCaret" style="display:inline-block;font-family:var(--mono);color:var(--dim);transition:transform .12s ease;width:9px">›</span>
     <span data-i="secSource">致谢与声明</span></h2>
   <div id="credBody">
+    <div id="credGuide"></div>
     <p class="hint" id="sourceNote"></p>
     <div id="credQr" style="display:flex;align-items:center;gap:14px;margin:10px 0 4px"></div>
   </div>
@@ -551,7 +565,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.30.3-20260728";
+var CACHE_VERSION = "rbmy-v4.31.1-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -753,6 +767,20 @@ var I18N = {
     calDrop:"\u7c98\u8d34\u622a\u56fe\uff08\u2318V / Ctrl-V\uff09\u3001\u62d6\u5165\uff0c\u6216\u9009\u62e9\u56fe\u7247",
     calPasteBtn:"\u7c98\u8d34", pasteNone:"\u526a\u8d34\u677f\u4e2d\u6ca1\u6709\u56fe\u7247",
     qrHint:"\u626b\u7801\u6253\u5f00\u672c\u5e94\u7528",
+    guideHead:"\u4f7f\u7528\u6307\u5357",
+    guideSteps:[
+      ["\u622a\u96f7\u8fbe\u56fe","\u5728 Windy \u6216 Rain Alarm \u4e2d\u8c03\u597d\u8303\u56f4\uff08\u534a\u5c9b\u3001\u4e1c\u9a6c\u6216\u5168\u56fd\uff09\uff0c\u622a\u5c4f\u3002\u4e24\u8fb9\u90fd\u8981\u65f6\uff0c\u622a\u4e24\u5f20\u3002"],
+      ["\u8d34\u8fdb\u6765","\u70b9 \u8d34\u56fe\u96f7\u8fbe \u2192 \u7c98\u8d34\uff08\u6216 \u9009\u56fe\u7247\u3001\u62d6\u5165\u3001Ctrl-V\uff09\u3002\u5e94\u7528\u4f1a\u81ea\u5df1\u8ba4\u51fa\u6765\u6e90\u4e0e\u96e8\u91cf\u8272\u9636\u3002"],
+      ["\u5bf9\u4e0d\u4e0a\u5c31\u624b\u52a8\u5bf9","\u82e5\u7ea2\u8272\u8f6e\u5ed3\u6ca1\u5bf9\u4e0a\u6d77\u5cb8\uff1a\u9009 \u56fe\u5e45\u8303\u56f4 \u2192 \u5bf9\u9f50\u6821\u51c6\uff0c\u62d6\u52a8\u3001\u53cc\u6307\u7f29\u653e\u7ea2\u7ebf\u8d34\u4e0a\u53bb\uff0c\u518d\u70b9 \u5438\u9644 \u2192 \u52a0\u5165\u56fe\u5c42\u3002"],
+      ["\u770b\u4e00\u773c","\u5730\u56fe\u4e0a\u70b9\u4efb\u4f55\u53bf\u5c5e\u53ef\u770b\u540d\u79f0\u4e0e\u96e8\u52bf\uff1b\u901f\u89c8 \u22652.5 \u53ea\u5217\u96e8\u52bf\u8f83\u5927\u7684\u6536\u85cf\u70b9\uff1b\u53f3\u4e0b\u89d2\u4e00\u884c\u662f\u96e8\u52bf\u8f6c\u5c0f\u9884\u62a5\u3002"],
+      ["\u53d1\u51fa\u53bb","WA \u901a\u62a5 \u53d1\u5dde\u5c5e\u4e0e\u53bf\u5c5e\uff1bWA \u660e\u7ec6 \u591a\u9644\u6536\u85cf\u70b9\u96e8\u60c5\u3002\u9884\u89c8\u91cc\u53ef\u5148\u6539\u6587\u5b57\u518d\u53d1\u3002"]
+    ],
+    guideTips:[
+      "\u6536\u85cf\u70b9\uff1a\u81ea\u5df1\u589e\u5220\u3001\u6807\u661f\u3001\u6279\u91cf\u4ece\u6587\u672c\u8f7d\u5165\u3002",
+      "\u65e0\u7f51\u4e5f\u80fd\u7528\uff1b\u53ea\u6709\u90a3\u884c\u9884\u62a5\u9700\u8981\u7f51\u7edc\u3002",
+      "\u8d34\u56fe\u8d8a\u65b0\uff0c\u901a\u62a5\u8d8a\u51c6\u2014\u2014\u5b83\u53ea\u8bfb\u4f60\u8d34\u8fdb\u53bb\u7684\u90a3\u5f20\u56fe\u3002",
+      "\u6b64\u901a\u62a5\u4e3a\u4e2a\u4eba\u53c2\u8003\uff0c\u5b98\u65b9\u8b66\u62a5\u4ee5 MET Malaysia \u4e3a\u51c6\u3002"
+    ],
     ariaIo:"\u6536\u85cf\u70b9\u6587\u672c", ariaZrA:"Z-R \u7cfb\u6570 a", ariaZrB:"Z-R \u6307\u6570 b",
     ariaZrCap:"dBZ \u4e0a\u9650", ariaWaTxt:"WhatsApp \u6587\u5b57", ariaFile:"\u9009\u62e9\u56fe\u7247",
     pasteDenied:"\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f", pasteNoApi:"\u6b64\u73af\u5883\u4e0d\u652f\u6301\u8bfb\u53d6\u526a\u8d34\u677f",
@@ -829,6 +857,20 @@ var I18N = {
     calDrop:"Paste a screenshot (\u2318V / Ctrl-V), drop one in, or choose a file",
     calPasteBtn:"Paste", pasteNone:"No image on the clipboard",
     qrHint:"Scan to open this app",
+    guideHead:"How to use",
+    guideSteps:[
+      ["Capture the radar","In Windy or Rain Alarm, frame the area you want (Peninsular, East Malaysia or the whole country) and take a screenshot. Take two if you need both halves."],
+      ["Paste it in","Tap Paste radar \u2192 Paste (or Choose image, drag in, or Ctrl-V). The app works out which app it came from and which rainfall scale it uses."],
+      ["Align it if it misses","If the red outline does not sit on the coast: pick What is in the image, tap Align overlay, drag and pinch the red outline onto the coastline, then Snap \u2192 Add layer."],
+      ["Read it","Tap any district for its name and rain; Quick \u22652.5 lists only the favourites getting real rain; the line at the bottom right is the rain-easing forecast."],
+      ["Send it","WA bulletin sends states and districts; WA detail adds your favourites. You can edit the text in the preview before sending."]
+    ],
+    guideTips:[
+      "Favourites: add, remove, star, or load a batch from text.",
+      "Works offline; only the forecast line needs a connection.",
+      "The fresher the screenshot, the truer the bulletin \u2014 it only ever reads the image you paste.",
+      "Personal reference; official warnings come from MET Malaysia."
+    ],
     ariaIo:"Favourites as text", ariaZrA:"Z-R coefficient a", ariaZrB:"Z-R exponent b",
     ariaZrCap:"dBZ cap", ariaWaTxt:"WhatsApp message text", ariaFile:"Choose an image",
     pasteDenied:"Clipboard read not allowed", pasteNoApi:"Clipboard reading unavailable here",
@@ -3445,6 +3487,27 @@ function paintCred() {
   car.style.transform = CRED_OPEN ? "rotate(90deg)" : "rotate(0deg)";
   document.getElementById("credHead").setAttribute("aria-expanded", CRED_OPEN ? "true" : "false");
   if (CRED_OPEN) {
+    /* Rebuilt on every paint so it follows the language switch. Text goes in
+       through textContent, never innerHTML — the guide is ours today, but the
+       rule that no string reaches the DOM as markup is what keeps it safe. */
+    var g = document.getElementById("credGuide");
+    g.innerHTML = "";
+    var h4 = document.createElement("h4");
+    h4.textContent = T("guideHead"); g.appendChild(h4);
+    var ol = document.createElement("ol");
+    T("guideSteps").forEach(function (s) {
+      var li = document.createElement("li");
+      var b = document.createElement("b"); b.textContent = s[0];
+      var sp = document.createElement("span"); sp.textContent = " \u2014 " + s[1];
+      li.appendChild(b); li.appendChild(sp); ol.appendChild(li);
+    });
+    g.appendChild(ol);
+    var ul = document.createElement("ul");
+    T("guideTips").forEach(function (t) {
+      var li = document.createElement("li"); li.textContent = t; ul.appendChild(li);
+    });
+    g.appendChild(ul);
+
     var host = document.getElementById("credQr");
     if (!host.firstChild) {
       host.innerHTML = '<a href="' + CRED_URL + '" target="_blank" rel="noopener" style="line-height:0">'
