@@ -1,7 +1,10 @@
 /* 雨情通报 RainBulletin MY — service worker
    Keep CACHE_VERSION in step with the constant in index.html. */
-var CACHE_VERSION = "rbmy-v4.29.2-20260728";
-var SHELL = ["./", "./index.html", "./manifest.json"];
+var CACHE_VERSION = "rbmy-v4.30.3-20260728";
+/* icon.svg belongs here: since v4.29.1 the page links it as favicon and
+   apple-touch-icon, and the manifest names it too — without it cached, an
+   offline launch 404s for its own icon. */
+var SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 var SHARE_CACHE = "rbmy-share";
 
 self.addEventListener("install", function (e) {

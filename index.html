@@ -43,7 +43,11 @@ body{
   font-size:17px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
   margin:0;color:var(--text)
 }
-.mast .zh{letter-spacing:.24em;font-weight:700}
+/* 雨情 sets optically smaller than RAINBULLETIN at the same point size —
+   Han glyphs fill their em box, so uppercase Latin at 17px looks taller than
+   CJK at 17px. Bumped so the two mastheads read at the same visual weight. */
+.mast .zh{font-size:22px;letter-spacing:.24em;font-weight:700}
+.mast .zh .lat{letter-spacing:.04em;font-size:19px}
 .mast .sub{display:block;margin-top:5px;font-family:var(--mono);font-size:12px;
   font-weight:500;color:var(--dim);letter-spacing:.05em}
 .spacer{flex:1}
@@ -73,6 +77,11 @@ body{
 .probe .st{color:var(--dim)}
 .probe .rn{color:#8ea2ff;font-weight:700}
 @media(max-width:520px){ .probe{font-size:12px} }
+/* The readout follows the side of the map that was touched. On a phone the
+   map is small, so people pinch-zoom the page; zoomed into Borneo the viewport
+   shows the right of the page and a left-aligned readout sits off-screen
+   entirely. Right-aligning it for East Malaysia keeps it in view. */
+.probe.right{justify-content:flex-end;text-align:right}
 
 /* ── toolbar ── */
 /* Desktop keeps one flowing row; the phone gets a keypad — three rows of three
@@ -285,7 +294,7 @@ dialog#cal{width:min(940px,96vw)}
   .tag{font-size:11.5px}
   .hint{font-size:12px}
   .mast h1{font-size:15px}
-  .mast h1.zh{letter-spacing:.16em}
+  .mast h1.zh{font-size:20px;letter-spacing:.16em}
   .mast .sub{font-size:11.5px;letter-spacing:.04em}
   .row{grid-template-columns:12px 1fr auto;gap:8px}
   .fld{grid-template-columns:1fr;gap:6px;margin-bottom:16px}
@@ -298,8 +307,8 @@ dialog#cal{width:min(940px,96vw)}
 
   <div class="mast">
     <div class="mastrow">
-      <h1 class="zh" data-i="brandZh">雨情</h1>
-      <h1 class="en" data-i="brandEn" hidden>RAINBULLETIN</h1>
+      <h1 class="zh" data-i="brandZh">雨情 Lab</h1>
+      <h1 class="en" data-i="brandEn" hidden>RAINBULLETIN Lab</h1>
       <span class="spacer"></span>
       <button class="langbtn" id="lang">EN</button>
     </div>
@@ -307,7 +316,7 @@ dialog#cal{width:min(940px,96vw)}
   </div>
 
   <div class="card"><svg id="bulletin" xmlns="http://www.w3.org/2000/svg"></svg></div>
-  <div class="probe" id="probe" aria-live="polite"><span data-i="probeHint">指向或点触地图，查看县属</span></div>
+  <div class="probe" id="probe" aria-live="polite"></div>
 
   <div class="bar keypad">
     <div class="brow view">
@@ -352,12 +361,16 @@ dialog#cal{width:min(940px,96vw)}
 </div>
 
 <dialog id="dlg"><div class="dlg">
-  <h3 data-i="dlgTitle">收藏点管理</h3>
+  <h3 style="display:flex;align-items:center;gap:10px">
+    <span data-i="dlgTitle" style="flex:1">收藏点管理</span>
+    <button class="x" id="fX" aria-label="close" style="font-size:20px">×</button>
+  </h3>
   <div class="fld"><label for="fName" data-i="fName">名称</label><input id="fName"></div>
   <div class="fld"><label for="fLat" data-i="fLat">纬度 Lat</label><input id="fLat" inputmode="decimal"></div>
   <div class="fld"><label for="fLon" data-i="fLon">经度 Lon</label><input id="fLon" inputmode="decimal"></div>
   <div class="foot">
     <button class="tool" id="fHere" data-i="btnHere">用当前位置</button>
+    <button class="tool" id="fClear" data-i="btnClearFields">清空</button>
     <button class="tool go" id="fAdd" data-i="btnAdd">加入</button>
   </div>
   <div id="fBinWrap" hidden style="margin-top:14px">
@@ -538,7 +551,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.29.2-20260728";
+var CACHE_VERSION = "rbmy-v4.30.3-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -679,13 +692,13 @@ var SEED = [
 /* ── i18n ── */
 var I18N = {
   zh: {
-    brandZh:"雨情", brandEn:"RAINBULLETIN", tagline:"降雨县属着色", vAll:"全国", vPen:"半岛", vBor:"东马",
+    brandZh:"雨情 Lab", brandEn:"RAINBULLETIN Lab", tagline:"降雨县属着色", vAll:"全国", vPen:"半岛", vBor:"东马",
     btnCopy:"复制文字", btnPng:"存图 PNG", btnEdit:"收藏点",
     secRoster:"收藏点明细", secSource:"致谢与声明",
     btnQuick:"速览 ≥2.5", quickHead:"速览 · 雨势 ≥2.5 mm/h",
     quickNone:"暂无收藏点达到 2.5 mm/h。", quickNoRate:"此雷达来源未提供雨量，无法按 mm/h 筛选。",
     quickNoRadar:"尚未贴图 — 请贴入雷达截图。",
-    dlgTitle:"收藏点管理", fName:"名称", fLat:"纬度 Lat", fLon:"经度 Lon",
+    dlgTitle:"收藏点管理", fName:"名称", fLat:"纬度 Lat", fLon:"经度 Lon", btnClearFields:"清空",
     btnAdd:"加入", btnLoad:"从文本载入", btnDump:"导出到文本", btnReset:"还原示范", btnClose:"完成",
     ioHint:"批量：每行一个「名称, 纬度, 经度」",
     bTitle:"雨情", bLegend:"正在下雨 / 有雨",
@@ -710,7 +723,6 @@ var I18N = {
     stopBy:"\u9884\u8ba1\u96e8\u52bf\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
     stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
     stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
-    probeHint:"\u6307\u5411\u6216\u70b9\u89e6\u5730\u56fe\uff0c\u67e5\u770b\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
     outside:"\u4e0d\u5728\u9a6c\u6765\u897f\u4e9a\u5883\u5185", deleted:"\u5df2\u5220\u9664", btnRestore:"\u6062\u590d", btnPurge:"\u5f7b\u5e95\u6e05\u9664",
@@ -752,17 +764,17 @@ var I18N = {
     calBad:"\u5b9a\u4f4d\u8bef\u5dee\u8fc7\u5927 \u2014 \u8bf7\u91cd\u65b0\u70b9\u51fb", calOk:"\u5df2\u91cd\u6295\u5f71",
     noData:"\u622a\u56fe\u672a\u8986\u76d6", covered:"\u8986\u76d6", radarAt:"\u8d34\u56fe\u65f6\u523b\uff1a",
     obs:"\u5b9e\u6d4b",
-    source:"雷达底图来源：Windy.com 与 Rain Alarm Pro（rain-alarm.com）—— 谨此致谢。降雨着色完全来自你贴入的雷达截图（实测）；本应用不连接任何天气 API。行政边界：Malaysia ADM2 160 县。此通报为个人参考，官方警报以马来西亚气象局（MET Malaysia）为准。"
+    source:"雷达底图来源：Windy.com 与 Rain Alarm Pro（rain-alarm.com）—— 谨此致谢。降雨着色完全来自你贴入的雷达截图（实测），不是任何 API 给的数据。本应用只调用一个天气 API：Open-Meteo（ECMWF IFS 9km 模式），仅用于右下角「预计雨势转小」这一行预报；即使读取失败，通报本身依然完整。行政边界：Malaysia ADM2 160 县。此通报为个人参考，官方警报以马来西亚气象局（MET Malaysia）为准。"
   },
   en: {
-    brandZh:"雨情", brandEn:"RAINBULLETIN", tagline:"Rainfall by district", vAll:"All", vPen:"Peninsular", vBor:"Sabah & Sarawak",
+    brandZh:"雨情 Lab", brandEn:"RAINBULLETIN Lab", tagline:"Rainfall by district", vAll:"All", vPen:"Peninsular", vBor:"Sabah & Sarawak",
     btnCopy:"Copy text", btnPng:"Save PNG", btnEdit:"Favourites",
     secRoster:"Favourite locations", secSource:"Credits & Acknowledgements",
     btnQuick:"Quick \u22652.5", quickHead:"Quick view \u00b7 rain \u22652.5 mm/h",
     quickNone:"No favourite location is at 2.5 mm/h right now.",
     quickNoRate:"This radar source gives no rainfall rate, so mm/h cannot be filtered.",
     quickNoRadar:"No radar pasted yet \u2014 paste a screenshot first.",
-    dlgTitle:"Manage favourites", fName:"Name", fLat:"Latitude", fLon:"Longitude",
+    dlgTitle:"Manage favourites", fName:"Name", fLat:"Latitude", fLon:"Longitude", btnClearFields:"Clear",
     btnAdd:"Add", btnLoad:"Load from text", btnDump:"Dump to text", btnReset:"Restore samples", btnClose:"Done",
     ioHint:"Bulk: one “name, lat, lon” per line",
     bTitle:"RAIN BULLETIN", bLegend:"Raining now",
@@ -787,7 +799,6 @@ var I18N = {
     stopBy:"Rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
     stopBeyond:"Rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
     stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
-    probeHint:"Point at or tap the map to identify a district",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
     outside:"Outside Malaysia", deleted:"Deleted", btnRestore:"Restore", btnPurge:"Purge",
@@ -829,7 +840,7 @@ var I18N = {
     calBad:"Fit error too large \u2014 re-tap the anchors", calOk:"Reprojected",
     noData:"outside screenshot", covered:"covered", radarAt:"Image: ",
     obs:"observed",
-    source:"Radar imagery courtesy of Windy.com and Rain Alarm Pro (rain-alarm.com), with thanks. District shading comes entirely from the radar screenshots you paste in (observed); the app contacts no weather API at all. Boundaries: Malaysia ADM2, 160 districts. Personal reference only; official warnings come from MET Malaysia."
+    source:"Radar imagery courtesy of Windy.com and Rain Alarm Pro (rain-alarm.com), with thanks. District shading comes entirely from the radar screenshots you paste in (observed) \u2014 no API supplies it. The app calls exactly one weather API, Open-Meteo (ECMWF IFS 9km), and only for the \u201crain easing by\u201d line at the bottom right; if that call fails, the bulletin still stands complete. Boundaries: Malaysia ADM2, 160 districts. Personal reference only; official warnings come from MET Malaysia."
   }
 };
 var LANG = store.get("lang", "zh");
@@ -3083,13 +3094,20 @@ function bulletinText() {
   }
 
   var sw2 = stopWord();
-  if (sw2 && !sw2.dim) { L.push(""); L.push(sw2.t + "  (" + T("stopNote") + ")"); }
+  var hasFc = !!(sw2 && !sw2.dim);
+  if (hasFc) { L.push(""); L.push(sw2.t + "  (" + T("stopNote") + ")"); }
   var offs = offshoreLine();
   if (offs) { L.push(""); L.push(T("offshore") + " " + offs); }
-  L.push("");
-  L.push(LANG === "zh"
-    ? "\u203b \u6765\u81ea\u96f7\u8fbe\u8d34\u56fe\uff08\u5b9e\u6d4b\uff09\u3002"
-    : "* From a radar image (observed).");
+  /* Attribution, not a disclaimer: the radar source is already named on the
+     image line above, so what the message still owes credit to is the
+     forecast provider — and only when a forecast actually appears in it.
+     Crediting ECMWF on a message carrying no forecast would be noise. */
+  if (hasFc) {
+    L.push("");
+    L.push(LANG === "zh"
+      ? "\u9884\u62a5\uff1aECMWF IFS 9km \u00b7 Open-Meteo"
+      : "Forecast: ECMWF IFS 9km \u00b7 Open-Meteo");
+  }
   return L.join("\n");
 }
 function toast(m) {
@@ -3136,7 +3154,7 @@ function deliverPng(blob, name) {
   try { file = new File([blob], name, { type:"image/png" }); } catch (e) { file = null; }
 
   if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
-    navigator.share({ files:[file], title:T("brandZh") })
+    navigator.share({ files:[file], title:T("bTitle") })
       .then(function () { toast(T("shared")); })
       .catch(function (err) {
         if (err && err.name === "AbortError") return;   /* user closed the sheet */
@@ -3528,7 +3546,7 @@ function shareWhatsApp(text) {
       var f = null;
       try { f = new File([warm], pngName(), { type:"image/png" }); } catch (e) { f = null; }
       if (f) {
-        navigator.share({ files:[f], title:T("brandZh"), text:text })
+        navigator.share({ files:[f], title:T("bTitle"), text:text })
           .then(function () { toast(T("shared")); })
           .catch(function (err) {
             if (err && err.name === "AbortError") return;
@@ -3547,7 +3565,7 @@ function shareWhatsApp(text) {
       var file;
       try { file = new File([blob], pngName(), { type:"image/png" }); } catch (e) { file = null; }
       if (!file) { waFallback(blob, pngName(), text); return; }
-      navigator.share({ files:[file], title:T("brandZh"), text:text })
+      navigator.share({ files:[file], title:T("bTitle"), text:text })
         .then(function () { toast(T("shared")); })
         .catch(function (err) {
           if (err && err.name === "AbortError") return;   /* user closed the sheet */
@@ -4534,13 +4552,25 @@ function probeAt(target) {
   var id = +el2.getAttribute("data-d");
   return DIST[id] ? id : null;
 }
+function eastState(s) {
+  return s === "Sabah" || s === "Sarawak" || s.indexOf("Labuan") >= 0;
+}
+
 function showProbe(id) {
   var box = document.getElementById("probe");
   if (id == null) {
-    box.innerHTML = "<span>" + T("probeHint") + "</span>";
+    /* Idle shows nothing at all. The bar keeps its height on purpose — if it
+       collapsed, every hover or tap would shove the roster up and down under
+       the reader's finger. */
+    box.classList.remove("right");
+    box.innerHTML = "";
     return;
   }
   var D = DIST[id], w = wetDistricts()[id], nd = noDataDistricts();
+  /* Sabah, Sarawak and Labuan are drawn on the right half of the card.
+     Labuan's state string is "W.P. Labuan", so match the same way regionOf
+     does rather than by an exact name that would silently miss it. */
+  box.classList.toggle("right", eastState(D.state));
   var h = "<b>" + distName(D) + "</b> <span class='st'>" + stateName(D.state) + "</span>";
   if (w) {
     h += "  <span class='rn'>" + T("lv")[w.band]
@@ -4800,7 +4830,20 @@ function applyLang() {
   document.getElementById("io").placeholder = T("ioHint");
   /* One name per language: 雨情 in Chinese, RAINBULLETIN in English — showing
      both at once made the masthead read like a bilingual logo lockup. */
-  document.querySelector(".mastrow h1.zh").hidden = (LANG !== "zh");
+  /* "Lab" is Latin inside a Han title; the wide CJK tracking would scatter
+     its letters, so it gets its own span after applyLang() sets the text. */
+  var zhT = document.querySelector(".mastrow h1.zh");
+  zhT.innerHTML = "";
+  var zhName = T("brandZh"), cut = zhName.indexOf(" Lab");
+  if (cut > 0) {
+    zhT.appendChild(document.createTextNode(zhName.slice(0, cut)));
+    var lab = document.createElement("span");
+    lab.className = "lat"; lab.textContent = zhName.slice(cut);
+    zhT.appendChild(lab);
+  } else {
+    zhT.textContent = zhName;
+  }
+  zhT.hidden = (LANG !== "zh");
   document.querySelector(".mastrow h1.en").hidden = (LANG === "zh");
   /* On a phone this opens the share sheet rather than writing a file, so say so */
   if (canSharePng()) document.getElementById("png").textContent = T("btnShare");
@@ -5027,6 +5070,18 @@ document.getElementById("calCoast").onclick = function () {
   this.setAttribute("aria-pressed", SHOWCOAST); drawCal();
 };
 function closeCal() { document.getElementById("cal").close(); }
+document.getElementById("fX").onclick = function () {
+  document.getElementById("dlg").close();
+};
+/* Clears the three entry fields only — never the saved favourites. The name
+   box keeps a half-typed entry alive across a location fetch, and there was
+   no way to start over except selecting and deleting each field. */
+document.getElementById("fClear").onclick = function () {
+  ["fName", "fLat", "fLon"].forEach(function (id) {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("fName").focus();
+};
 document.getElementById("calX").onclick = closeCal;
 document.getElementById("calDone").onclick = closeCal;
 document.getElementById("cal").addEventListener("click", function (e) {
