@@ -70,13 +70,42 @@ body{
 /* ── map probe: which district is under the finger ── */
 /* --ink is the near-black used on the white bulletin card; this strip sits on
    the dark page, so it needs --text or the district name is black on black. */
-.probe{margin:8px 0 0;padding:8px 11px;min-height:36px;font-size:13.5px;font-weight:500;
+/* Always two rows, whatever the content: district and readings on top, state
+   beneath. A bar that changes shape as you drag across the map is distracting
+   — and its height must not change either, or the roster below shifts under
+   the reader's finger. */
+.probe{margin:8px 0 0;padding:7px 11px;min-height:52px;font-size:13.5px;font-weight:500;
   color:var(--dim);font-family:var(--mono);letter-spacing:.02em;background:var(--steel);
-  border:1px solid var(--line);border-radius:3px;display:flex;align-items:center;gap:2px}
-.probe b{color:var(--text);font-family:var(--sans);font-weight:700;letter-spacing:0}
-.probe .st{color:var(--dim)}
+  border:1px solid var(--line);border-radius:3px;
+  display:flex;flex-direction:column;justify-content:center;gap:1px}
+/* Line one never wraps. Left-aligned it happened to fit; right-aligned, a
+   long name like "Bukit Mabong" pushed the readings onto their own line and
+   the bar grew to three. The readings hold their width and the district name
+   yields first, since a clipped name is still recognisable while a wrapped
+   row breaks the whole layout. */
+.probe .r1{display:flex;align-items:baseline;gap:12px;flex-wrap:nowrap;min-width:0}
+.probe .r2{line-height:1.2}
+/* Right-aligned means the NAME sits at the right edge, directly above the
+   state — justify-content alone did nothing once the row filled the width,
+   so the order reverses instead: readings first, district last. */
+.probe.right .r1{flex-direction:row-reverse}
+.probe.right .r2{text-align:right}
+.probe b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.probe .met{display:flex;align-items:baseline;gap:10px;flex-wrap:nowrap;flex:0 0 auto;
+  white-space:nowrap}
+.probe b{color:var(--text);font-family:var(--sans);font-weight:700;letter-spacing:0;
+  font-size:14.5px}
+.probe .st{color:var(--dim);font-size:12px}
 .probe .rn{color:#8ea2ff;font-weight:700}
-@media(max-width:520px){ .probe{font-size:12px} }
+@media(max-width:520px){
+  /* the readings must fit beside the name on one line, so they get a notch
+     smaller on a phone rather than being allowed to wrap */
+  .probe{font-size:11.5px}
+  .probe b{font-size:13.5px}
+  .probe .st{font-size:11px}
+  .probe .r1{gap:9px}
+  .probe .met{gap:8px}
+}
 /* The readout follows the side of the map that was touched. On a phone the
    map is small, so people pinch-zoom the page; zoomed into Borneo the viewport
    shows the right of the page and a left-aligned readout sits off-screen
@@ -369,6 +398,7 @@ dialog#cal{width:min(940px,96vw)}
   <div id="credBody">
     <div id="credGuide"></div>
     <p class="hint" id="sourceNote"></p>
+    <p class="hint" id="builtNote" style="margin-top:-6px"></p>
     <div id="credQr" style="display:flex;align-items:center;gap:14px;margin:10px 0 4px"></div>
   </div>
   <p class="hint" id="buildNote"></p>
@@ -565,7 +595,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.31.1-20260728";
+var CACHE_VERSION = "rbmy-v4.33.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -767,6 +797,7 @@ var I18N = {
     calDrop:"\u7c98\u8d34\u622a\u56fe\uff08\u2318V / Ctrl-V\uff09\u3001\u62d6\u5165\uff0c\u6216\u9009\u62e9\u56fe\u7247",
     calPasteBtn:"\u7c98\u8d34", pasteNone:"\u526a\u8d34\u677f\u4e2d\u6ca1\u6709\u56fe\u7247",
     qrHint:"\u626b\u7801\u6253\u5f00\u672c\u5e94\u7528",
+    builtWith:"\u5f00\u53d1\u534f\u4f5c\uff1aClaude Opus 5 \u4e0e Claude Fable 5\uff08Anthropic\uff09\u3002",
     guideHead:"\u4f7f\u7528\u6307\u5357",
     guideSteps:[
       ["\u622a\u96f7\u8fbe\u56fe","\u5728 Windy \u6216 Rain Alarm \u4e2d\u8c03\u597d\u8303\u56f4\uff08\u534a\u5c9b\u3001\u4e1c\u9a6c\u6216\u5168\u56fd\uff09\uff0c\u622a\u5c4f\u3002\u4e24\u8fb9\u90fd\u8981\u65f6\uff0c\u622a\u4e24\u5f20\u3002"],
@@ -857,6 +888,7 @@ var I18N = {
     calDrop:"Paste a screenshot (\u2318V / Ctrl-V), drop one in, or choose a file",
     calPasteBtn:"Paste", pasteNone:"No image on the clipboard",
     qrHint:"Scan to open this app",
+    builtWith:"Built with Claude Opus 5 and Claude Fable 5 (Anthropic).",
     guideHead:"How to use",
     guideSteps:[
       ["Capture the radar","In Windy or Rain Alarm, frame the area you want (Peninsular, East Malaysia or the whole country) and take a screenshot. Take two if you need both halves."],
@@ -3097,6 +3129,7 @@ function render() {
     host.appendChild(wrap);
   });
   document.getElementById("sourceNote").textContent = T("source");
+  document.getElementById("builtNote").textContent = T("builtWith");
   paintCred();
   /* Which copy am I looking at? file:// for quick iteration, Pages for the
      phone — without this it is easy to test a build you already replaced. */
@@ -4634,19 +4667,19 @@ function showProbe(id) {
      Labuan's state string is "W.P. Labuan", so match the same way regionOf
      does rather than by an exact name that would silently miss it. */
   box.classList.toggle("right", eastState(D.state));
-  var h = "<b>" + distName(D) + "</b> <span class='st'>" + stateName(D.state) + "</span>";
+  var h = "<span class='r1'><b>" + distName(D) + "</b><span class='met'>";
   if (w) {
-    h += "  <span class='rn'>" + T("lv")[w.band]
-       + (w.mm != null ? "  " + (stepCapped(w.step, w.pal) ? "\u2265" : "") + fmtRate(w.mm) + " mm/h" : "")
+    h += "<span class='rn'>" + T("lv")[w.band]
+       + (w.mm != null ? " " + (stepCapped(w.step, w.pal) ? "\u2265" : "") + fmtRate(w.mm) + " mm/h" : "")
        + "</span>";
-    if (w.mm != null) h += " <span class='st'>" + w.dbz + " dBZ</span>";
-    h += " <span class='st'>" + Math.round(w.cov * 100) + "% " + T("covered") + "</span>";
+    if (w.mm != null) h += "<span class='st'>" + w.dbz + " dBZ</span>";
+    h += "<span class='st'>" + Math.round(w.cov * 100) + "% " + T("covered") + "</span>";
   } else if (nd[id]) {
-    h += "  <span class='st'>" + T("noData") + "</span>";
+    h += "<span class='st'>" + T("noData") + "</span>";
   } else if (RADAR) {
-    h += "  <span class='st'>" + T("lv")[0] + "</span>";
+    h += "<span class='st'>" + T("lv")[0] + "</span>";
   }
-  box.innerHTML = h;
+  box.innerHTML = h + "</span></span><span class='r2 st'>" + stateName(D.state) + "</span>";
 }
 (function () {
   var svg = document.getElementById("bulletin"), last = null;

@@ -1,6 +1,6 @@
 /* 雨情通报 RainBulletin MY — service worker
    Keep CACHE_VERSION in step with the constant in index.html. */
-var CACHE_VERSION = "rbmy-v4.31.1-20260728";
+var CACHE_VERSION = "rbmy-v4.33.0-20260728";
 /* icon.svg belongs here: since v4.29.1 the page links it as favicon and
    apple-touch-icon, and the manifest names it too — without it cached, an
    offline launch 404s for its own icon. */
