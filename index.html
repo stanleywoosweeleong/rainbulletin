@@ -595,7 +595,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.33.0-20260728";
+var CACHE_VERSION = "rbmy-v4.35.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -764,8 +764,8 @@ var I18N = {
     alignHint:"\u62d6\u52a8\u3001\u53cc\u6307\u7f29\u653e\u7ea2\u8272\u8f6e\u5ed3\uff0c\u8d34\u5230\u622a\u56fe\u7684\u6d77\u5cb8\u7ebf\u4e0a\uff0c\u7136\u540e\u70b9 \u5438\u9644",
     hintAuto:"\u81ea\u52a8", hintWest:"\u897f\u9a6c", hintEast:"\u4e1c\u9a6c", hintAll:"\u5168\u56fd",
     offshore:"\u5916\u6d77\u96e8\u533a\uff1a",
-    stopBy:"\u9884\u8ba1\u96e8\u52bf\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
-    stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
+    stopBy:"\u9884\u8ba1\u5927\u96e8\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
+    stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u5927\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
     stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
@@ -855,8 +855,8 @@ var I18N = {
     alignHint:"Drag / pinch the red outline onto the screenshot's coastline, then tap Snap",
     hintAuto:"Auto", hintWest:"Peninsular", hintEast:"Sabah & Sarawak", hintAll:"Whole country",
     offshore:"Offshore rain:",
-    stopBy:"Rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
-    stopBeyond:"Rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
+    stopBy:"Heavy rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
+    stopBeyond:"Heavy rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
     stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
@@ -4760,7 +4760,7 @@ var OM_FLOOR = 4 * 60 * 1000;       /* never call more often than this */
 var OM_BUDGET = 200;                /* per day, against a 10,000 limit */
 var OM_MAXPTS = 60;
 
-var STOP = { state:"idle", range:null, at:0, key:"", fails:0, n:0, src:"dist" };
+var STOP = { state:"idle", range:null, west:null, east:null, at:0, key:"", fails:0, n:0, src:"dist" };
 
 function omBudget() {
   var today = new Date().toISOString().slice(0, 10);
@@ -4783,7 +4783,9 @@ function stopPoints() {
     la = Math.round(la * 100) / 100; lo = Math.round(lo * 100) / 100;
     var k = la + "," + lo;
     if (seen[k]) return;
-    seen[k] = 1; out.push({ la:la, lo:lo });
+    /* Which side of the country: the 109E meridian sits in the South China
+       Sea between the two, so it separates them without touching either. */
+    seen[k] = 1; out.push({ la:la, lo:lo, east:lo >= 109 });
   }
   liveFavs().forEach(function (f) {
     var pi = pointInfo(f.la, f.lo);
@@ -4813,23 +4815,33 @@ function mytClock(ms) {
   }
 }
 
-/* When precipitation stops. ECMWF reports precipitation as the SUM OVER THE
-   PRECEDING HOUR, so a dry value stamped 14:00 means nothing fell between
-   13:00 and 14:00 — the rain ended somewhere inside that window, and 14:00 is
-   the conservative end of it. Two consecutive dry hours are required so a lull
-   inside a storm is not read as the end of it.
+/* The line this bulletin exists for. Nobody broadcasts a drizzle: these cards
+   go out for the storms MET Malaysia would put a thunderstorm warning against,
+   so the forecast answers "when does the heavy rain ease", not "when does the
+   last drop fall". STOP_MM therefore sits on the same moderate-rain line as
+   the 速览 panel (QUICK_MM) — one definition of real rain across the app.
+
+   It also removes a known bias: IFS at 9km smooths convection and trails light
+   precipitation for hours after a cell has passed, so a 0.1mm test kept the
+   clock running long past anything a farmer would call rain.
+
+   ECMWF reports precipitation as the SUM OVER THE PRECEDING HOUR, so a value
+   stamped 14:00 covers 13:00-14:00 — the rain eased somewhere inside that
+   window, and 14:00 is the conservative end of it. Two consecutive hours below
+   the line are required, so a lull inside a storm is not read as its end.
 
    Times come back as unix seconds; asking for local strings would have them
    parsed against the device clock, which is wrong the moment the phone is not
    on Malaysian time. Returns an absolute instant, not a countdown. */
+var STOP_MM = QUICK_MM;              /* 2.5 mm/h — moderate rain */
 function dryAt(times, vals) {
   var now = Date.now();
   for (var i = 0; i < vals.length - 1; i++) {
     var t = (+times[i]) * 1000;
     if (!isFinite(t) || t < now) continue;
-    if ((vals[i] || 0) < 0.1 && (vals[i+1] || 0) < 0.1) return t;
+    if ((vals[i] || 0) < STOP_MM && (vals[i+1] || 0) < STOP_MM) return t;
   }
-  return null;                       /* still raining past the horizon */
+  return null;                       /* heavy rain past the horizon */
 }
 
 function fetchStop(manual) {
@@ -4868,14 +4880,33 @@ function fetchStop(manual) {
     .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
     .then(function (j) {
       var arr = Array.isArray(j) ? j : [j], ends = [];
-      arr.forEach(function (o) {
+      var side = [];
+      arr.forEach(function (o, i) {
         var m = o && o.hourly;
         if (!m || !m.time) return;
         ends.push(dryAt(m.time, m.precipitation || []));
+        side.push(pts[i] && pts[i].east ? "east" : "west");
       });
       if (!ends.length) throw new Error("empty");   /* no data is a failure, not a forecast */
+      /* A window per region, because one line covering both was misleading:
+         30 districts raining in Johor AND Sarawak read as "16:00-20:00", which
+         looks like seven hours of rain in one place when it is really one
+         region clearing mid-afternoon and the other in the evening. */
+      function rangeOf(pick) {
+        var k = [], total = 0;
+        ends.forEach(function (v, i) {
+          if (side[i] !== pick) return;
+          total++;
+          if (v !== null) k.push(v);
+        });
+        if (!total || !k.length) return null;
+        return { lo:Math.min.apply(null, k), hi:Math.max.apply(null, k),
+                 all:k.length === total, n:total };
+      }
       var known = ends.filter(function (v) { return v !== null; });
       STOP.state = "ok"; STOP.at = Date.now(); STOP.fails = 0;
+      STOP.west = rangeOf("west");
+      STOP.east = rangeOf("east");
       STOP.range = known.length
         ? { lo:Math.min.apply(null, known), hi:Math.max.apply(null, known),
             all:known.length === ends.length }
@@ -4899,9 +4930,18 @@ function stopWord() {
   if (STOP.state === "budget" || STOP.state === "fail") return null;
   if (STOP.state !== "ok") return null;
   if (!STOP.range) return { t:T("stopBeyond"), dim:false };
-  var a = mytClock(q15(STOP.range.lo)), b = mytClock(q15(STOP.range.hi));
-  var body = (a === b) ? a : a + "\u2013" + b;
-  return { t:T("stopBy") + " " + body + (STOP.range.all ? "" : "+"), dim:false };
+  function win(r) {
+    var a = mytClock(q15(r.lo)), b = mytClock(q15(r.hi));
+    return (a === b ? a : a + "\u2013" + b) + (r.all ? "" : "+");
+  }
+  /* Name the region only when both are raining — labelling a single region
+     "Peninsular" adds a word that carries no information. */
+  if (STOP.west && STOP.east) {
+    return { t:T("stopBy") + " " + T("vPen") + " " + win(STOP.west)
+                + "  \u00b7  " + T("vBor") + " " + win(STOP.east), dim:false };
+  }
+  var only = STOP.west || STOP.east;
+  return { t:T("stopBy") + " " + win(only || STOP.range), dim:false };
 }
 
 /* ══ wiring ══ */
