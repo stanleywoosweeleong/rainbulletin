@@ -595,7 +595,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.35.1-20260728";
+var CACHE_VERSION = "rbmy-v4.37.1-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -750,7 +750,7 @@ var I18N = {
     noFav:"还没有收藏点。按「收藏点」加入你的园地。",
     unassigned:"未落入任何县属",
     lv:["无雨","微雨","小雨","中雨","大雨","暴雨"],
-    copied:"已复制", saved:"已存图", nowrain:"下雨中", dry:"无雨",
+    copied:"已复制", saved:"已存图",  
     done:"\u5b8c\u6210", wetN:"\u6709\u96e8", btnZR:"\u6821\u51c6",
     dlgZR:"\u96e8\u91cf\u6821\u51c6 \u00b7 Z\u2013R", zrPreset:"\u9884\u8bbe",
     zrHint:"a \u00b7 b \u00b7 \u5c01\u9876 dBZ", zrPairs:"\u5b9e\u6d4b\u5bf9\u7167\uff08\u96e8\u91cf\u8ba1 vs \u96f7\u8fbe\uff09",
@@ -764,9 +764,12 @@ var I18N = {
     alignHint:"\u62d6\u52a8\u3001\u53cc\u6307\u7f29\u653e\u7ea2\u8272\u8f6e\u5ed3\uff0c\u8d34\u5230\u622a\u56fe\u7684\u6d77\u5cb8\u7ebf\u4e0a\uff0c\u7136\u540e\u70b9 \u5438\u9644",
     hintAuto:"\u81ea\u52a8", hintWest:"\u897f\u9a6c", hintEast:"\u4e1c\u9a6c", hintAll:"\u5168\u56fd",
     offshore:"\u5916\u6d77\u96e8\u533a\uff1a",
-    stopBy:"\u9884\u8ba1\u5927\u96e8\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
+    stopBy:"\u9884\u8ba1\u5927\u96e8\u8f6c\u5c0f",  stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
     stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u5927\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
     stopNoHeavy:"\u672a\u6765\u6570\u5c0f\u65f6\u65e0\u5927\u96e8\u9884\u62a5",
+    stopComing:"\u53ef\u80fd\u8f6c\u5927\u96e8",
+    stopArgue:"\u96f7\u8fbe\u4ecd\u6709\u5927\u96e8\uff0c\u9884\u62a5\u5df2\u8f6c\u5c0f \u2014 \u4ee5\u96f7\u8fbe\u4e3a\u51c6",
+    stopArgued:"\u90e8\u5206\u5730\u70b9\u9884\u62a5\u504f\u4f4e",
     stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
@@ -774,7 +777,7 @@ var I18N = {
     shared:"\u5df2\u5206\u4eab", longPress:"\u957f\u6309\u56fe\u7247\u53ef\u4fdd\u5b58", btnShare:"\u5206\u4eab\u56fe\u7247",
     btnWa1:"WA \u901a\u62a5", btnWa2:"WA \u660e\u7ec6", waHead:"\u6536\u85cf\u70b9\u96e8\u60c5\uff1a",
     waReady:"\u5df2\u5f00 WhatsApp \u00b7 \u56fe\u5df2\u4e0b\u8f7d\uff0c\u8bf7\u9644\u4e0a",
-    waPaste:"\u56fe\u4e0e\u6587\u5b57\u5df2\u590d\u5236 \u00b7 \u5728 WhatsApp \u7c98\u8d34\u56fe\uff0c\u518d\u5728\u8bf4\u660e\u680f\u7c98\u8d34\u6587\u5b57",
+    
     waAgain:"\u56fe\u5df2\u5907\u597d \u00b7 \u8bf7\u518d\u70b9\u4e00\u6b21",
     waApp:"\u5df2\u5f00 WhatsApp \u00b7 \u56fe\u5df2\u5b58\uff0c\u9009\u5bf9\u8c61\u540e\u9644\u4e0a",
     dlgWa:"WhatsApp \u9884\u89c8", waSend:"\u53d1\u9001\u5230 WhatsApp", btnCancel:"\u53d6\u6d88",
@@ -787,7 +790,7 @@ var I18N = {
     zrBadFit:"\u4e24\u8005\u4e0d\u4e00\u81f4\uff0c\u4e0d\u53ef\u7528",
     zrNoCross:"\u9700\u8981\u540c\u65f6\u8d34\u5165 Rain Alarm \u4e0e Windy \u4e24\u5f20\u56fe", recalled:"\u6cbf\u7528\u5df2\u5b58\u5b9a\u4f4d", queued:"\u5f85\u5904\u7406", wetCount:"\u53bf\u5c5e\u6709\u96e8", shapeAt:"\u8f6e\u5ed3\u5339\u914d", margin:"\u9886\u5148", more:"\u66f4\u591a\u53bf\u5c5e", listMin:"\u540d\u5355\u2265\u5c0f\u96e8",
     scanning:"\u8bc6\u522b\u4e2d\u2026\u8bf7\u7a0d\u5019", scanOk:"\u5df2\u5b9a\u4f4d", scanNo:"\u65e0\u6cd5\u81ea\u52a8\u5b9a\u4f4d \u2014 \u8bf7\u6539\u7528\u624b\u52a8\u70b9\u9009",
-    manual:"\u624b\u52a8\u70b9\u9009", rescan:"\u91cd\u65b0\u8bc6\u522b", zoomAt:"\u56fe\u5185\u5c3a\u5ea6",
+    manual:"\u624b\u52a8\u70b9\u9009",  
     noImg:"尚未贴图 — 请贴入雷达截图",
     layers:"图层", regWest:"\u534a\u5c9b", regEast:"\u4e1c\u9a6c", regAll:"\u5168\u56fd",
     autoOk:"\u81ea\u52a8\u8bc6\u522b", autoNo:"\u672a\u80fd\u81ea\u52a8\u8bc6\u522b \u2014 \u8bf7\u70b9\u51fb\u5b9a\u4f4d\u70b9",
@@ -820,7 +823,7 @@ var I18N = {
     calAnchors:"\u5b9a\u4f4d\u70b9", calFit:"\u8bef\u5dee", calNeed:"\u9700\u8981\u81f3\u5c11 2 \u4e2a\u5b9a\u4f4d\u70b9",
     calCoast:"\u53e0\u793a\u6d77\u5cb8\u7ebf\u6821\u5bf9", calApply:"\u91cd\u6295\u5f71\u5230\u5730\u56fe", calClearImg:"\u6e05\u9664\u8d34\u56fe",
     calSens:"\u7075\u654f\u5ea6", calSensL:["\u4f4e","\u4e2d","\u9ad8"],
-    calSave:"\u5b58\u4e3a\u9884\u8bbe", calPresets:"\u9884\u8bbe", calTime:"\u65f6\u523b", tShot:"\u622a\u56fe\u65f6", tPaste:"\u8d34\u56fe\u65f6",
+      calTime:"\u65f6\u523b", tShot:"\u622a\u56fe\u65f6", tPaste:"\u8d34\u56fe\u65f6",
     calBad:"\u5b9a\u4f4d\u8bef\u5dee\u8fc7\u5927 \u2014 \u8bf7\u91cd\u65b0\u70b9\u51fb", calOk:"\u5df2\u91cd\u6295\u5f71",
     noData:"\u622a\u56fe\u672a\u8986\u76d6", covered:"\u8986\u76d6", radarAt:"\u8d34\u56fe\u65f6\u523b\uff1a",
     obs:"\u5b9e\u6d4b",
@@ -842,7 +845,7 @@ var I18N = {
     noFav:"No favourites yet. Tap “Favourites” to add your orchards.",
     unassigned:"outside district polygons",
     lv:["Dry","Trace","Light","Moderate","Heavy","Very heavy"],
-    copied:"Copied", saved:"Saved", nowrain:"Raining", dry:"Dry",
+    copied:"Copied", saved:"Saved",  
     done:"Done", wetN:"wet", btnZR:"Calibrate",
     dlgZR:"Rain calibration \u00b7 Z\u2013R", zrPreset:"Preset",
     zrHint:"a \u00b7 b \u00b7 cap dBZ", zrPairs:"Gauge vs radar pairs",
@@ -856,9 +859,12 @@ var I18N = {
     alignHint:"Drag / pinch the red outline onto the screenshot's coastline, then tap Snap",
     hintAuto:"Auto", hintWest:"Peninsular", hintEast:"Sabah & Sarawak", hintAll:"Whole country",
     offshore:"Offshore rain:",
-    stopBy:"Heavy rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
+    stopBy:"Heavy rain easing by",  stopWait:"Fetching forecast\u2026",
     stopBeyond:"Heavy rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
     stopNoHeavy:"No heavy rain forecast in the next hours",
+    stopComing:"Heavy rain likely from",
+    stopArgue:"Radar still shows heavy rain; the forecast already has it easing \u2014 trust the radar",
+    stopArgued:"forecast reads low at some points",
     stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
@@ -866,7 +872,7 @@ var I18N = {
     shared:"Shared", longPress:"Long-press the image to save it", btnShare:"Share image",
     btnWa1:"WA bulletin", btnWa2:"WA detail", waHead:"Raining at favourite locations:",
     waReady:"WhatsApp opened \u00b7 image downloaded \u2014 attach it",
-    waPaste:"Image + text copied \u00b7 paste the image in WhatsApp, then paste the text in the caption box",
+    
     waAgain:"Image ready \u00b7 tap once more to share",
     waApp:"WhatsApp opened \u00b7 image saved \u2014 attach it after picking the chat",
     dlgWa:"WhatsApp preview", waSend:"Send to WhatsApp", btnCancel:"Cancel",
@@ -879,7 +885,7 @@ var I18N = {
     zrBadFit:"sources disagree \u2014 not usable",
     zrNoCross:"Needs a Rain Alarm and a Windy layer loaded together", recalled:"Reused saved calibration", queued:"queued", wetCount:"districts raining", shapeAt:"shape match", margin:"margin", more:"more districts", listMin:"list \u2265 light",
     scanning:"Locating\u2026 one moment", scanOk:"Located", scanNo:"Could not locate \u2014 switch to manual anchors",
-    manual:"Manual anchors", rescan:"Locate again", zoomAt:"Image scale",
+    manual:"Manual anchors",  
     noImg:"No image yet \u2014 paste a radar screenshot",
     layers:"Layers", regWest:"Peninsular", regEast:"Sabah & Sarawak", regAll:"Nationwide",
     autoOk:"Auto-matched", autoNo:"No match \u2014 tap the anchors",
@@ -912,7 +918,7 @@ var I18N = {
     calAnchors:"Anchors", calFit:"Fit error", calNeed:"Needs at least 2 anchors",
     calCoast:"Overlay coastline to check", calApply:"Reproject onto map", calClearImg:"Clear image",
     calSens:"Sensitivity", calSensL:["Low","Medium","High"],
-    calSave:"Save as preset", calPresets:"Presets", calTime:"Timestamp", tShot:"Screenshot", tPaste:"Pasted",
+      calTime:"Timestamp", tShot:"Screenshot", tPaste:"Pasted",
     calBad:"Fit error too large \u2014 re-tap the anchors", calOk:"Reprojected",
     noData:"outside screenshot", covered:"covered", radarAt:"Image: ",
     obs:"observed",
@@ -4762,7 +4768,8 @@ var OM_FLOOR = 4 * 60 * 1000;       /* never call more often than this */
 var OM_BUDGET = 200;                /* per day, against a 10,000 limit */
 var OM_MAXPTS = 60;
 
-var STOP = { state:"idle", range:null, west:null, east:null, at:0, key:"", fails:0, n:0, src:"dist" };
+var STOP = { state:"idle", range:null, west:null, east:null, wOn:null, eOn:null,
+             at:0, key:"", fails:0, n:0, src:"dist" };
 
 function omBudget() {
   var today = new Date().toISOString().slice(0, 10);
@@ -4781,25 +4788,37 @@ function omSpend() {
 function stopPoints() {
   if (!RADAR) return [];
   var seen = {}, out = [];
-  function add(la, lo) {
+  function add(la, lo, obs) {
     la = Math.round(la * 100) / 100; lo = Math.round(lo * 100) / 100;
     var k = la + "," + lo;
     if (seen[k]) return;
+    /* obs = what the RADAR says is falling there right now, in mm/h, or null
+       when the source gives no rates. Carried so the forecast can be checked
+       against the observation instead of silently overruling it. */
     /* Which side of the country: the 109E meridian sits in the South China
        Sea between the two, so it separates them without touching either. */
-    seen[k] = 1; out.push({ la:la, lo:lo, east:lo >= 109 });
+    seen[k] = 1; out.push({ la:la, lo:lo, east:lo >= 109, obs:(obs == null ? null : obs) });
   }
   liveFavs().forEach(function (f) {
     var pi = pointInfo(f.la, f.lo);
-    if (pi.seen && pi.step) add(f.la, f.lo);
+    if (pi.seen && pi.step) add(f.la, f.lo, pi.mm);
   });
   STOP.src = out.length ? "fav" : "dist";
   if (!out.length) {
     var wet = wetDistricts();
     Object.keys(wet)
       .sort(function (a, b) { return wet[b].step - wet[a].step; })
-      .forEach(function (k) { add(DIST[k].cen[1], DIST[k].cen[0]); });
+      .forEach(function (k) { add(DIST[k].cen[1], DIST[k].cen[0], wet[k].mm); });
   }
+  /* Starred favourites are asked about even when dry, so a farm that is not
+     raining yet still gets a heads-up. Starred only, and after the wet points:
+     the cap is a real limit, and a place already raining has the stronger
+     claim on it. */
+  var wetN = out.length;
+  liveFavs().forEach(function (f) {
+    if (f.st) add(f.la, f.lo);
+  });
+  out.forEach(function (p, i) { p.watch = i >= wetN; });
   return out.slice(0, OM_MAXPTS);
 }
 
@@ -4846,6 +4865,23 @@ var NO_HEAVY = -1;                   /* nothing above the line in the window */
      NO_HEAVY  nothing above the line ahead  → say so, do not invent a time
      null      above the line to the horizon → "continuing for hours"
      timestamp the hour it drops and stays below  */
+/* When heavy rain ARRIVES. The easing search already had to find this hour;
+   it was computed and thrown away. Reported separately because its confidence
+   is different in kind: for a place already raining, radar proves the event
+   exists and the model only has to end it. For a dry place the model has to
+   CREATE convection in the right spot at the right hour, and IFS at 9km
+   smooths exactly the cells that matter — an hour or three of timing error is
+   normal. Hence the hedged wording in the label. */
+function wetAt(times, vals) {
+  var now = Date.now();
+  for (var i = 0; i < vals.length; i++) {
+    var t = (+times[i]) * 1000;
+    if (!isFinite(t) || t < now) continue;
+    if ((vals[i] || 0) >= STOP_MM) return t;
+  }
+  return null;
+}
+
 function dryAt(times, vals) {
   var now = Date.now();
   var start = -1;
@@ -4865,7 +4901,15 @@ function dryAt(times, vals) {
 
 function fetchStop(manual) {
   var pts = stopPoints();
-  if (!pts.length) { STOP.state = "idle"; STOP.range = null; STOP.n = 0; return; }
+  if (!pts.length) {
+    /* Clear EVERY field, not just range. The per-region windows and onsets
+       added in 4.34-4.37 survived this reset; nothing renders them while the
+       state is idle, so it is latent rather than visible — but a half-cleared
+       object is exactly what turns into a stale-data bug on the next change. */
+    STOP.state = "idle"; STOP.range = null; STOP.n = 0;
+    STOP.west = null; STOP.east = null; STOP.wOn = null; STOP.eOn = null;
+    return;
+  }
   var key = pts.map(function (p) { return p.la + "," + p.lo; }).join(";");
 
   if (STOP.key === key && STOP.state === "ok" && Date.now() - STOP.at < OM_TTL) return;
@@ -4899,11 +4943,12 @@ function fetchStop(manual) {
     .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
     .then(function (j) {
       var arr = Array.isArray(j) ? j : [j], ends = [];
-      var side = [];
+      var side = [], starts = [];
       arr.forEach(function (o, i) {
         var m = o && o.hourly;
         if (!m || !m.time) return;
         ends.push(dryAt(m.time, m.precipitation || []));
+        starts.push(wetAt(m.time, m.precipitation || []));
         side.push(pts[i] && pts[i].east ? "east" : "west");
       });
       if (!ends.length) throw new Error("empty");   /* no data is a failure, not a forecast */
@@ -4911,25 +4956,54 @@ function fetchStop(manual) {
          30 districts raining in Johor AND Sarawak read as "16:00-20:00", which
          looks like seven hours of rain in one place when it is really one
          region clearing mid-afternoon and the other in the evening. */
+      /* THE RADAR WINS. He only pastes an image when something is coming down
+         hard, so a point the radar shows at or above the line is raining
+         heavily — full stop. When the model's own hour disagrees and offers no
+         heavy hour ahead, that is the model already ending a storm the image
+         proves is happening: it is not evidence of calm, and the card must
+         never answer "no heavy rain forecast" over a wet radar pixel. Such a
+         point is counted as easing at the model's first hour and flagged, so
+         the wording can admit the disagreement instead of hiding it. */
       function rangeOf(pick) {
-        var k = [], total = 0, calm = 0;
+        var k = [], total = 0, calm = 0, argued = 0, firstHr = null;
         ends.forEach(function (v, i) {
           if (side[i] !== pick) return;
           total++;
-          if (v === NO_HEAVY) { calm++; return; }
-          if (v !== null) k.push(v);
+          var wetNow = pts[i] && pts[i].obs != null && pts[i].obs >= STOP_MM;
+          if (v === NO_HEAVY) {
+            if (wetNow) {                     /* radar says otherwise */
+              argued++;
+              if (starts[i]) k.push(starts[i]);
+              else if (firstHr != null) k.push(firstHr);
+            } else calm++;
+            return;
+          }
+          if (v !== null) { k.push(v); if (firstHr === null) firstHr = v; }
         });
         if (!total) return null;
-        /* every point in this region calm: an answer, not a missing value */
         if (calm === total) return { calm:true, n:total };
-        if (!k.length) return null;              /* heavy to the horizon */
+        if (!k.length) return argued ? { soon:true, argued:argued, n:total } : null;
         return { lo:Math.min.apply(null, k), hi:Math.max.apply(null, k),
-                 all:k.length === total - calm, n:total };
+                 all:k.length === total - calm, n:total, argued:argued };
+      }
+      /* The earliest arrival in each region, counting only points that are not
+         already in heavy rain — telling someone rain "arrives" when it is
+         already falling on them is noise. */
+      function onsetOf(pick) {
+        var soon = null;
+        starts.forEach(function (v, i) {
+          if (side[i] !== pick || v === null) return;
+          if (ends[i] !== NO_HEAVY && v <= Date.now() + 20 * 60 * 1000) return;
+          if (soon === null || v < soon) soon = v;
+        });
+        return soon;
       }
       var known = ends.filter(function (v) { return v !== null && v !== NO_HEAVY; });
       STOP.state = "ok"; STOP.at = Date.now(); STOP.fails = 0;
       STOP.west = rangeOf("west");
       STOP.east = rangeOf("east");
+      STOP.wOn = onsetOf("west");
+      STOP.eOn = onsetOf("east");
       STOP.range = known.length
         ? { lo:Math.min.apply(null, known), hi:Math.max.apply(null, known),
             all:known.length === ends.length }
@@ -4953,24 +5027,58 @@ function stopWord() {
   if (STOP.state === "budget" || STOP.state === "fail") return null;
   if (STOP.state !== "ok") return null;
   var cw = STOP.west && STOP.west.calm, ce = STOP.east && STOP.east.calm;
-  /* Nothing heavy anywhere ahead: say that plainly rather than reporting a
-     time for rain that is not forecast. Dim, and kept out of the broadcast —
-     an absence is context, not something to send 3,000 people. */
-  if ((cw || !STOP.west) && (ce || !STOP.east) && (cw || ce))
-    return { t:T("stopNoHeavy"), dim:true };
-  if (!STOP.range) return { t:T("stopBeyond"), dim:false };
+  /* "Coming" is a different statement from "easing", so it gets its own
+     clause and its own hedge — 可能 / likely, never 预计. A place with rain
+     on the way matters more than one with nothing forecast, so this is
+     reported ahead of the all-calm line. */
+  function comingLine() {
+    var parts = [];
+    if (STOP.wOn && STOP.eOn) {
+      parts.push(T("vPen") + " " + mytClock(q15(STOP.wOn)));
+      parts.push(T("vBor") + " " + mytClock(q15(STOP.eOn)));
+    } else {
+      var only = STOP.wOn || STOP.eOn;
+      if (only) parts.push(mytClock(q15(only)));
+    }
+    return parts.length ? T("stopComing") + " " + parts.join("  \u00b7  ") : null;
+  }
+  var argued = (STOP.west && STOP.west.argued) || (STOP.east && STOP.east.argued);
+  /* Only regions with a real time window can be printed as one. */
+  var wWin = (STOP.west && !STOP.west.calm && !STOP.west.soon) ? STOP.west : null;
+  var eWin = (STOP.east && !STOP.east.calm && !STOP.east.soon) ? STOP.east : null;
+  /* Radar shows heavy rain and the model offers no heavy hour anywhere: say so
+     outright. "Continuing for hours" would overstate it (the model expects the
+     opposite) and "no heavy rain" would deny the image he just pasted. */
+  if (argued && !wWin && !eWin) return { t:T("stopArgue"), dim:false };
+  if (!argued && (cw || !STOP.west) && (ce || !STOP.east) && (cw || ce)) {
+    var coming = comingLine();
+    return coming ? { t:coming, dim:false } : { t:T("stopNoHeavy"), dim:true };
+  }
   function win(r) {
     var a = mytClock(q15(r.lo)), b = mytClock(q15(r.hi));
     return (a === b ? a : a + "\u2013" + b) + (r.all ? "" : "+");
   }
   /* Name the region only when both are raining — labelling a single region
      "Peninsular" adds a word that carries no information. */
-  if (STOP.west && STOP.east && !cw && !ce) {
-    return { t:T("stopBy") + " " + T("vPen") + " " + win(STOP.west)
-                + "  \u00b7  " + T("vBor") + " " + win(STOP.east), dim:false };
+  if (wWin && eWin) {
+    return { t:T("stopBy") + " " + T("vPen") + " " + win(wWin)
+                + "  \u00b7  " + T("vBor") + " " + win(eWin), dim:false };
   }
-  var only = STOP.west || STOP.east;
-  return { t:T("stopBy") + " " + win(only || STOP.range), dim:false };
+  /* Pick the region that actually HAS a window — a calm region has no lo/hi,
+     and feeding it to win() printed "Invalid Date" on exactly the case the
+     previous release added: one region easing while the other waits for rain. */
+  var only = wWin || eWin;
+  /* Nothing resolves anywhere: the rain runs past the forecast horizon. */
+  if (!only && !STOP.range) return { t:T("stopBeyond"), dim:false };
+  var base = T("stopBy") + " " + win(only || STOP.range);
+  /* Some points in this bulletin have radar and model disagreeing; the time
+     above comes from the model, so mark whose word is being reported. */
+  if (argued) base += "  \u00b7  " + T("stopArgued");
+  /* one region easing while the other is still to be hit */
+  var other = (cw ? STOP.wOn : ce ? STOP.eOn : null);
+  if (other) base += "  \u00b7  " + T("stopComing") + " "
+                   + T(cw ? "vPen" : "vBor") + " " + mytClock(q15(other));
+  return { t:base, dim:false };
 }
 
 /* ══ wiring ══ */
