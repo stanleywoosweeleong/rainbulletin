@@ -595,7 +595,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.35.0-20260728";
+var CACHE_VERSION = "rbmy-v4.35.1-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -766,6 +766,7 @@ var I18N = {
     offshore:"\u5916\u6d77\u96e8\u533a\uff1a",
     stopBy:"\u9884\u8ba1\u5927\u96e8\u8f6c\u5c0f", stopFrom:"\u7b97\u81ea", stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
     stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u5927\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
+    stopNoHeavy:"\u672a\u6765\u6570\u5c0f\u65f6\u65e0\u5927\u96e8\u9884\u62a5",
     stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
@@ -857,6 +858,7 @@ var I18N = {
     offshore:"Offshore rain:",
     stopBy:"Heavy rain easing by", stopFrom:"from", stopWait:"Fetching forecast\u2026",
     stopBeyond:"Heavy rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
+    stopNoHeavy:"No heavy rain forecast in the next hours",
     stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
@@ -4834,12 +4836,29 @@ function mytClock(ms) {
    parsed against the device clock, which is wrong the moment the phone is not
    on Malaysian time. Returns an absolute instant, not a countdown. */
 var STOP_MM = QUICK_MM;              /* 2.5 mm/h — moderate rain */
+var NO_HEAVY = -1;                   /* nothing above the line in the window */
+
+/* Ask when the heavy rain eases only AFTER establishing that heavy rain is
+   forecast at all. Without that gate, a day of light drizzle satisfies "two
+   hours below 2.5" at the very first hour, and the card announces heavy rain
+   easing when none was ever coming — which is exactly what it did on a
+   0.93 mm/h afternoon. Three outcomes, all distinct:
+     NO_HEAVY  nothing above the line ahead  → say so, do not invent a time
+     null      above the line to the horizon → "continuing for hours"
+     timestamp the hour it drops and stays below  */
 function dryAt(times, vals) {
   var now = Date.now();
-  for (var i = 0; i < vals.length - 1; i++) {
-    var t = (+times[i]) * 1000;
-    if (!isFinite(t) || t < now) continue;
-    if ((vals[i] || 0) < STOP_MM && (vals[i+1] || 0) < STOP_MM) return t;
+  var start = -1;
+  for (var i = 0; i < vals.length; i++) {
+    var t0 = (+times[i]) * 1000;
+    if (!isFinite(t0) || t0 < now) continue;
+    if ((vals[i] || 0) >= STOP_MM) { start = i; break; }
+  }
+  if (start < 0) return NO_HEAVY;
+  for (var j = start; j < vals.length - 1; j++) {
+    var t = (+times[j]) * 1000;
+    if (!isFinite(t)) continue;
+    if ((vals[j] || 0) < STOP_MM && (vals[j+1] || 0) < STOP_MM) return t;
   }
   return null;                       /* heavy rain past the horizon */
 }
@@ -4893,17 +4912,21 @@ function fetchStop(manual) {
          looks like seven hours of rain in one place when it is really one
          region clearing mid-afternoon and the other in the evening. */
       function rangeOf(pick) {
-        var k = [], total = 0;
+        var k = [], total = 0, calm = 0;
         ends.forEach(function (v, i) {
           if (side[i] !== pick) return;
           total++;
+          if (v === NO_HEAVY) { calm++; return; }
           if (v !== null) k.push(v);
         });
-        if (!total || !k.length) return null;
+        if (!total) return null;
+        /* every point in this region calm: an answer, not a missing value */
+        if (calm === total) return { calm:true, n:total };
+        if (!k.length) return null;              /* heavy to the horizon */
         return { lo:Math.min.apply(null, k), hi:Math.max.apply(null, k),
-                 all:k.length === total, n:total };
+                 all:k.length === total - calm, n:total };
       }
-      var known = ends.filter(function (v) { return v !== null; });
+      var known = ends.filter(function (v) { return v !== null && v !== NO_HEAVY; });
       STOP.state = "ok"; STOP.at = Date.now(); STOP.fails = 0;
       STOP.west = rangeOf("west");
       STOP.east = rangeOf("east");
@@ -4929,6 +4952,12 @@ function stopWord() {
   if (STOP.state === "offline") return { t:T("stopOffline"), dim:true };
   if (STOP.state === "budget" || STOP.state === "fail") return null;
   if (STOP.state !== "ok") return null;
+  var cw = STOP.west && STOP.west.calm, ce = STOP.east && STOP.east.calm;
+  /* Nothing heavy anywhere ahead: say that plainly rather than reporting a
+     time for rain that is not forecast. Dim, and kept out of the broadcast —
+     an absence is context, not something to send 3,000 people. */
+  if ((cw || !STOP.west) && (ce || !STOP.east) && (cw || ce))
+    return { t:T("stopNoHeavy"), dim:true };
   if (!STOP.range) return { t:T("stopBeyond"), dim:false };
   function win(r) {
     var a = mytClock(q15(r.lo)), b = mytClock(q15(r.hi));
@@ -4936,7 +4965,7 @@ function stopWord() {
   }
   /* Name the region only when both are raining — labelling a single region
      "Peninsular" adds a word that carries no information. */
-  if (STOP.west && STOP.east) {
+  if (STOP.west && STOP.east && !cw && !ce) {
     return { t:T("stopBy") + " " + T("vPen") + " " + win(STOP.west)
                 + "  \u00b7  " + T("vBor") + " " + win(STOP.east), dim:false };
   }
