@@ -1,11 +1,16 @@
 /* 雨情通报 RainBulletin MY — service worker
    Keep CACHE_VERSION in step with the constant in index.html. */
-var CACHE_VERSION = "rbmy-v4.37.1-20260728";
+var CACHE_VERSION = "rbmy-v4.42.0-20260728";
 /* icon.svg belongs here: since v4.29.1 the page links it as favicon and
    apple-touch-icon, and the manifest names it too — without it cached, an
    offline launch 404s for its own icon. */
 var SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 var SHARE_CACHE = "rbmy-share";
+
+/* The page can ask for an immediate handover after it has told the user. */
+self.addEventListener("message", function (e) {
+  if (e.data === "skipWaiting") self.skipWaiting();
+});
 
 self.addEventListener("install", function (e) {
   self.skipWaiting();
@@ -55,6 +60,40 @@ self.addEventListener("fetch", function (e) {
   /* The app talks to no weather API at all — rain arrives only as pasted
      images — so everything cacheable here is the shell itself. */
   if (url.origin !== location.origin) return;
+
+  /* The app shell itself is fetched network-first, with the cache as a fast
+     fallback. Everything else stays cache-first (stale-while-revalidate).
+
+     Why the split: cache-first on index.html means a new build lands in the
+     cache on one launch and is only USED on the next, so every update is a
+     launch behind. For someone opening this several times a day during the
+     monsoon that is the whole delay. Network-first closes it, and the 2-second
+     race keeps a slow or dead connection from ever making the app feel broken
+     — past that we serve the cached copy and let the background update land
+     for next time. */
+  var isShell = e.request.mode === "navigate"
+             || url.pathname.replace(/^.*\//, "") === "index.html";
+  if (isShell) {
+    e.respondWith((async function () {
+      var cached = caches.match("./index.html");
+      try {
+        var res = await Promise.race([
+          fetch(e.request),
+          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("slow")); }, 2000); })
+        ]);
+        if (res && res.ok && !url.search) {
+          var copy = res.clone();
+          caches.open(CACHE_VERSION).then(function (c) { c.put(e.request, copy); });
+        }
+        return res;
+      } catch (err) {
+        var hit = await cached;
+        if (hit) return hit;
+        return fetch(e.request);              /* nothing cached: let it fail honestly */
+      }
+    })());
+    return;
+  }
 
   e.respondWith(
     caches.match(e.request).then(function (hit) {

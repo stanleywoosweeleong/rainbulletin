@@ -97,6 +97,11 @@ body{
   font-size:14.5px}
 .probe .st{color:var(--dim);font-size:12px}
 .probe .rn{color:#8ea2ff;font-weight:700}
+/* One red, used only for rates at or above HOT_MM — if it appeared anywhere
+   else it would stop meaning "look at this". */
+.hot{color:#ff5b52 !important;font-weight:800}
+#quick .qmm.hot{color:#ff5b52 !important}
+.tag.hot{color:#ff5b52;font-weight:800}
 @media(max-width:520px){
   /* the readings must fit beside the name on one line, so they get a notch
      smaller on a phone rather than being allowed to wrap */
@@ -151,6 +156,16 @@ button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight
 #quick .qd{color:var(--dim);font-size:11.5px}
 #quick .qmm{font-family:var(--mono);font-weight:700;white-space:nowrap}
 #quick .qnone{padding:10px 11px;color:var(--dim);font-size:12.5px}
+.fgrp{border-bottom:1px solid var(--line)}
+.fgrp:last-child{border-bottom:0}
+.fghead{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;
+  background:none;border:0;cursor:pointer;color:var(--text);font-family:var(--sans);
+  font-size:12.5px;font-weight:700;letter-spacing:.05em;text-align:left}
+.fghead .caret{font-family:var(--mono);color:var(--dim);width:9px;
+  transition:transform .12s ease;display:inline-block}
+.fghead .fgn{flex:1;min-width:0}
+.fghead em{font-style:normal;font-family:var(--mono);font-size:12px;font-weight:700;
+  color:#cfd6f5;letter-spacing:.04em}
 .wapre{background:#0d0f1c;border:1px solid var(--line);border-radius:3px;padding:8px;margin-bottom:10px;
   max-height:44vh;overflow:auto;text-align:center}
 .wapre img{max-width:100%;height:auto;display:block;margin:0 auto}
@@ -595,7 +610,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.37.1-20260728";
+var CACHE_VERSION = "rbmy-v4.42.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -764,12 +779,15 @@ var I18N = {
     alignHint:"\u62d6\u52a8\u3001\u53cc\u6307\u7f29\u653e\u7ea2\u8272\u8f6e\u5ed3\uff0c\u8d34\u5230\u622a\u56fe\u7684\u6d77\u5cb8\u7ebf\u4e0a\uff0c\u7136\u540e\u70b9 \u5438\u9644",
     hintAuto:"\u81ea\u52a8", hintWest:"\u897f\u9a6c", hintEast:"\u4e1c\u9a6c", hintAll:"\u5168\u56fd",
     offshore:"\u5916\u6d77\u96e8\u533a\uff1a",
-    stopBy:"\u9884\u8ba1\u5927\u96e8\u8f6c\u5c0f",  stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
-    stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709\u5927\u96e8", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
-    stopNoHeavy:"\u672a\u6765\u6570\u5c0f\u65f6\u65e0\u5927\u96e8\u9884\u62a5",
-    stopComing:"\u53ef\u80fd\u8f6c\u5927\u96e8",
-    stopArgue:"\u96f7\u8fbe\u4ecd\u6709\u5927\u96e8\uff0c\u9884\u62a5\u5df2\u8f6c\u5c0f \u2014 \u4ee5\u96f7\u8fbe\u4e3a\u51c6",
+    stopBy:"\u9884\u8ba1{w}\u8f6c\u5c0f",  stopWait:"\u9884\u62a5\u8bfb\u53d6\u4e2d\u2026",
+    stopBeyond:"\u672a\u6765\u6570\u5c0f\u65f6\u4ecd\u6709{w}", stopOffline:"\u65e0\u7f51\u7edc\uff0c\u65e0\u9884\u62a5",
+    fcMod:"\u4e2d\u96e8", fcModHeavy:"\u4e2d\u5230\u5927\u96e8", fcHeavy:"\u5927\u96e8",
+    fcStorm:"\u96f7\u66b4\u7ea7\u5927\u96e8", fcRain:"\u964d\u96e8",
+    stopNoHeavy:"\u672a\u6765\u6570\u5c0f\u65f6\u65e0\u4e2d\u96e8\u4ee5\u4e0a\u9884\u62a5",
+    stopComing:"\u53ef\u80fd\u8f6c{w}",
+    stopArgue:"\u96f7\u8fbe\u4ecd\u6709\u5f3a\u964d\u96e8\uff0c\u9884\u62a5\u5df2\u8f6c\u5c0f \u2014 \u4ee5\u96f7\u8fbe\u4e3a\u51c6",
     stopArgued:"\u90e8\u5206\u5730\u70b9\u9884\u62a5\u504f\u4f4e",
+    swNew:"\u65b0\u7248\u672c\u5df2\u5c31\u7eea \u2014 \u70b9\u6b64\u91cd\u8f7d", swNewShort:"\u65b0\u7248\u5f85\u91cd\u8f7d",
     stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
@@ -782,6 +800,8 @@ var I18N = {
     waApp:"\u5df2\u5f00 WhatsApp \u00b7 \u56fe\u5df2\u5b58\uff0c\u9009\u5bf9\u8c61\u540e\u9644\u4e0a",
     dlgWa:"WhatsApp \u9884\u89c8", waSend:"\u53d1\u9001\u5230 WhatsApp", btnCancel:"\u53d6\u6d88",
     waCopy:"\u590d\u5236\u6587\u5b57", waCopied:"\u5df2\u590d\u5236",
+    waWaitFc:"\u7b49\u9884\u62a5\u2026 \u7a0d\u540e\u53ef\u53d1",
+    waFcLate:"\u9884\u62a5\u672a\u8fd4\u56de\u2014\u53ef\u5148\u53d1\uff08\u4e0d\u5e26\u9884\u62a5\uff09",
     waDeskStep:"\u56fe\u5df2\u590d\u5236\uff1a\u5148\u5728 WhatsApp \u7c98\u8d34\u56fe\u7247\uff1b\u518d\u56de\u6765\u70b9 \u590d\u5236\u6587\u5b57\uff0c\u7c98\u5230\u8bf4\u660e\u680f",
     waCopied2:"\u6587\u5b57\u5df2\u590d\u5236 \u00b7 \u7c98\u5230\u8bf4\u660e\u680f\u540e\u53d1\u9001",
     waEdit:"\u53d1\u9001\u524d\u53ef\u4fee\u6539\u6587\u5b57",
@@ -813,6 +833,7 @@ var I18N = {
     guideTips:[
       "\u6536\u85cf\u70b9\uff1a\u81ea\u5df1\u589e\u5220\u3001\u6807\u661f\u3001\u6279\u91cf\u4ece\u6587\u672c\u8f7d\u5165\u3002",
       "\u65e0\u7f51\u4e5f\u80fd\u7528\uff1b\u53ea\u6709\u90a3\u884c\u9884\u62a5\u9700\u8981\u7f51\u7edc\u3002",
+      "\u96e8\u52bf\u5206\u7ea7\uff1a2.5 \u505c\u5de5\u907f\u96e8 \u00b7 4 \u4e2d\u5230\u5927 \u00b7 7 \u5927\u96e8 \u00b7 20+ \u96f7\u66b4\uff08MET \u6807\u51c6\uff09\u3002",
       "\u8d34\u56fe\u8d8a\u65b0\uff0c\u901a\u62a5\u8d8a\u51c6\u2014\u2014\u5b83\u53ea\u8bfb\u4f60\u8d34\u8fdb\u53bb\u7684\u90a3\u5f20\u56fe\u3002",
       "\u6b64\u901a\u62a5\u4e3a\u4e2a\u4eba\u53c2\u8003\uff0c\u5b98\u65b9\u8b66\u62a5\u4ee5 MET Malaysia \u4e3a\u51c6\u3002"
     ],
@@ -859,12 +880,15 @@ var I18N = {
     alignHint:"Drag / pinch the red outline onto the screenshot's coastline, then tap Snap",
     hintAuto:"Auto", hintWest:"Peninsular", hintEast:"Sabah & Sarawak", hintAll:"Whole country",
     offshore:"Offshore rain:",
-    stopBy:"Heavy rain easing by",  stopWait:"Fetching forecast\u2026",
-    stopBeyond:"Heavy rain continuing for hours", stopOffline:"Offline \u2014 no forecast",
-    stopNoHeavy:"No heavy rain forecast in the next hours",
-    stopComing:"Heavy rain likely from",
+    stopBy:"{w} easing by",  stopWait:"Fetching forecast\u2026",
+    stopBeyond:"{w} continuing for hours", stopOffline:"Offline \u2014 no forecast",
+    fcMod:"Moderate rain", fcModHeavy:"Moderate-heavy rain", fcHeavy:"Heavy rain",
+    fcStorm:"Thunderstorm-grade rain", fcRain:"Rain",
+    stopNoHeavy:"Nothing at or above moderate forecast in the next hours",
+    stopComing:"{w} likely from",
     stopArgue:"Radar still shows heavy rain; the forecast already has it easing \u2014 trust the radar",
     stopArgued:"forecast reads low at some points",
+    swNew:"A new version is ready \u2014 tap to reload", swNewShort:"update ready",
     stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
@@ -877,6 +901,8 @@ var I18N = {
     waApp:"WhatsApp opened \u00b7 image saved \u2014 attach it after picking the chat",
     dlgWa:"WhatsApp preview", waSend:"Send to WhatsApp", btnCancel:"Cancel",
     waCopy:"Copy text", waCopied:"Copied",
+    waWaitFc:"Waiting for the forecast\u2026 send in a moment",
+    waFcLate:"Forecast did not return \u2014 you can send without it",
     waDeskStep:"Image copied: paste it in WhatsApp first; then come back, tap Copy text, and paste it as the caption",
     waCopied2:"Text copied \u00b7 paste into the caption box and send",
     waEdit:"Edit the text before sending",
@@ -908,6 +934,7 @@ var I18N = {
     guideTips:[
       "Favourites: add, remove, star, or load a batch from text.",
       "Works offline; only the forecast line needs a connection.",
+      "Intensity: 2.5 mm/h people shelter \u00b7 4 moderate-heavy \u00b7 7 heavy \u00b7 20+ thunderstorm (MET criterion).",
       "The fresher the screenshot, the truer the bulletin \u2014 it only ever reads the image you paste.",
       "Personal reference; official warnings come from MET Malaysia."
     ],
@@ -3128,6 +3155,7 @@ function render() {
         tag.textContent = T("lv")[r.rb]
           + (r.pi.mm != null ? "  " + (stepCapped(r.pi.step, r.pi.pal) ? "\u2265" : "")
              + fmtRate(r.pi.mm) + " mm/h" : "");
+        if (hotRate(r.pi.mm)) tag.classList.add("hot");
       } else if (near) {
         tag.textContent = T("inDist") + " " + T("lv")[r.dw.band]
           + (r.dw.mm != null ? " " + fmtRate(r.dw.mm) + " mm/h" : "");
@@ -3145,7 +3173,10 @@ function render() {
   bn.textContent = CACHE_VERSION + "  \u00b7  "
     + (location.protocol === "file:" ? "local file"
        : location.hostname || "local server")
-    + (("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "  \u00b7  SW" : "");
+    + (("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "  \u00b7  SW" : "")
+    /* stays visible after the toast fades, so he can see a reload is pending
+       without having to remember the toast */
+    + (typeof SWNEW !== "undefined" && SWNEW ? "  \u00b7  " + T("swNewShort") : "");
   paintQuick();                 /* a new paste changes who is over the line */
   paintRegionHint();
   /* the card just changed: drop the stale PNG and quietly rebuild it, so a
@@ -3444,6 +3475,18 @@ var WAIMGURL = null;
    what he is doing. Separate from the roster on purpose: the roster answers
    "how is everywhere", this answers "who needs to know now". Toggled, session
    only, and never part of the broadcast text. */
+/* Which favourite groups are expanded in the manage dialog. Session-only, like
+   the roster: yesterday's open group was open for yesterday's reason. */
+var FLIST_OPEN = {};
+/* Above this rate the number turns red wherever it appears. 10 mm/h is WMO's
+   heavy-rain threshold and roughly where Stanley's "surely heavy" begins, and
+   the audience has widened beyond farmers: school teachers deciding about
+   dismissal during the northeast monsoon, and volunteer BOMBA watching a
+   catchment. Those readers scan for the dangerous figure rather than reading
+   the line, so it has to announce itself. */
+var HOT_MM = 10;
+function hotRate(mm) { return mm != null && mm >= HOT_MM; }
+
 var QUICK_MM = 2.5;
 var QUICK_OPEN = false;
 
@@ -3599,8 +3642,9 @@ function paintQuick() {
       var d = document.createElement("span");
       d.className = "qd"; d.textContent = r.d ? distName(r.d) : "";
       var mm = document.createElement("span");
-      mm.className = "qmm";
-      mm.style.color = "var(--r" + Math.min(4, Math.max(0, r.pi.band)) + ")";
+      mm.className = "qmm" + (hotRate(r.pi.mm) ? " hot" : "");
+      if (!hotRate(r.pi.mm))
+        mm.style.color = "var(--r" + Math.min(4, Math.max(0, r.pi.band)) + ")";
       mm.textContent = (stepCapped(r.pi.step, r.pi.pal) ? "\u2265" : "")
                      + fmtRate(r.pi.mm) + " mm/h";
       row.appendChild(n); row.appendChild(d); row.appendChild(mm);
@@ -3609,12 +3653,55 @@ function paintQuick() {
   });
 }
 
+/* Don't let a broadcast leave while the forecast is still in flight. Two
+   seconds of "预报读取中" baked into a PNG sent to 3,000 people is a mistake
+   nobody notices until a reply arrives, and a status dot would only work if
+   he remembered to look at it at 5:15am. So the preview opens, the send button
+   waits, and it releases itself the moment the answer lands — or after a short
+   timeout, so a dead network can never trap him. */
+var WAWAIT = null;
+function waArmSend() {
+  var btn = document.getElementById("waSend");
+  var hint = document.getElementById("waHint");
+  if (WAWAIT) { clearInterval(WAWAIT.iv); WAWAIT = null; }
+  if (STOP.state !== "loading") {
+    btn.disabled = false;
+    hint.textContent = T("waEdit"); hint.style.color = "";
+    return;
+  }
+  btn.disabled = true;
+  hint.textContent = T("waWaitFc"); hint.style.color = "var(--amber)";
+  var t0 = Date.now();
+  WAWAIT = { iv:setInterval(function () {
+    var late = Date.now() - t0 > 6000;
+    if (STOP.state === "loading" && !late) return;
+    clearInterval(WAWAIT.iv); WAWAIT = null;
+    /* refresh the text: the forecast line changed under it */
+    var d = document.getElementById("waTxt").dataset.detailed === "1";
+    var t = bulletinText();
+    if (d) { var rr = rainRosterText(); if (rr) t += "\n\n" + rr; }
+    document.getElementById("waTxt").value = t;
+    invalidatePngWarm();
+    renderPng(function (b) {
+      if (!b) return;
+      PNGWARM = b;
+      if (WAIMGURL) { try { URL.revokeObjectURL(WAIMGURL); } catch (e) {} }
+      WAIMGURL = URL.createObjectURL(b);
+      document.getElementById("waImg").src = WAIMGURL;
+    });
+    btn.disabled = false;
+    hint.textContent = T(late ? "waFcLate" : "waEdit");
+    hint.style.color = late ? "var(--amber)" : "";
+  }, 250) };
+}
+
 function waPreview(detailed) {
   var text = bulletinText();
   if (detailed) {
     var rr = rainRosterText();
     if (rr) text += "\n\n" + rr;
   }
+  document.getElementById("waTxt").dataset.detailed = detailed ? "1" : "0";
   document.getElementById("waTxt").value = text;
   var img = document.getElementById("waImg");
   img.removeAttribute("src");
@@ -3627,8 +3714,11 @@ function waPreview(detailed) {
   };
   if (PNGWARM) show(PNGWARM); else renderPng(show);
   document.getElementById("wa").showModal();
+  waArmSend();
 }
 function waClose() {
+  if (WAWAIT) { clearInterval(WAWAIT.iv); WAWAIT = null; }
+  document.getElementById("waSend").disabled = false;
   document.getElementById("wa").close();
   document.getElementById("waCopy").hidden = true;
   var h = document.getElementById("waHint");
@@ -3722,17 +3812,37 @@ function paintList() {
   idx.sort(function (a, b) { return (b.f.st || 0) - (a.f.st || 0) || a.i - b.i; });
   var nStar = 0;
   FAVS.forEach(function (f) { if (f.st && !f.del) nStar++; });
+  /* 114 rows in one scroll is the wall this dialog was built to avoid, and the
+     search box only helps when you already know the name. Grouped by state and
+     collapsed, the list opens at ten headings instead. Starred farms keep their
+     own group at the top — those are today's farms.
+
+     While searching, everything is open: hiding a match behind a closed
+     heading would make the search look broken. */
+  var groups = [], byState = {}, starRows = [];
   var shown = 0;
   idx.forEach(function (o) {
-    var f = o.f, i = o.i;
+    var f = o.f;
     if (q) {
       var hay = (f.n + " " + (f.g || "")).toLowerCase();
-      var dd = districtAt(f.lo, f.la);
-      if (dd) hay += " " + dd.name.toLowerCase() + " " + (DIST_ZH[dd.name] || "")
-                   + " " + dd.state.toLowerCase() + " " + (STATE_ZH[dd.state] || "");
+      var dd0 = districtAt(f.lo, f.la);
+      if (dd0) hay += " " + dd0.name.toLowerCase() + " " + (DIST_ZH[dd0.name] || "")
+                    + " " + dd0.state.toLowerCase() + " " + (STATE_ZH[dd0.state] || "");
       if (hay.indexOf(q) < 0) return;
     }
     shown++;
+    if (f.st) { starRows.push(o); return; }
+    var dd = districtAt(f.lo, f.la);
+    var st = dd ? dd.state : "\u2014";
+    (byState[st] = byState[st] || []).push(o);
+  });
+  if (starRows.length) groups.push({ key:"\u2605", label:T("starred"), rows:starRows });
+  Object.keys(byState).sort().forEach(function (st) {
+    groups.push({ key:st, label:stateName(st), rows:byState[st] });
+  });
+
+  function rowFor(o) {
+    var f = o.f, i = o.i;
     var d = document.createElement("div"); d.className = "li";
     d.innerHTML = "<button class='star' aria-label='star'></button>" +
       "<span></span><code>" + f.la.toFixed(4) + ", " + f.lo.toFixed(4) +
@@ -3747,7 +3857,27 @@ function paintList() {
       else FAVS.splice(i, 1);                 /* seeds come back with 还原示范 */
       saveFavs(); paintList(); render();
     };
-    h.appendChild(d);
+    return d;
+  }
+
+  groups.forEach(function (g) {
+    var open = q ? true : !!FLIST_OPEN[g.key];
+    var wrap = document.createElement("div"); wrap.className = "fgrp";
+    var head = document.createElement("button");
+    head.type = "button"; head.className = "fghead";
+    head.setAttribute("aria-expanded", open ? "true" : "false");
+    var car = document.createElement("span");
+    car.className = "caret"; car.textContent = "\u203a";
+    car.style.transform = open ? "rotate(90deg)" : "rotate(0deg)";
+    var nm = document.createElement("span"); nm.className = "fgn"; nm.textContent = g.label;
+    var ct = document.createElement("em"); ct.textContent = g.rows.length;
+    head.appendChild(car); head.appendChild(nm); head.appendChild(ct);
+    head.onclick = function () {
+      FLIST_OPEN[g.key] = !FLIST_OPEN[g.key]; paintList();
+    };
+    wrap.appendChild(head);
+    if (open) g.rows.forEach(function (o) { wrap.appendChild(rowFor(o)); });
+    h.appendChild(wrap);
   });
   document.getElementById("fCount").textContent =
     shown + " / " + liveFavs().length + "   \u2b50 " + nStar;
@@ -4677,7 +4807,7 @@ function showProbe(id) {
   box.classList.toggle("right", eastState(D.state));
   var h = "<span class='r1'><b>" + distName(D) + "</b><span class='met'>";
   if (w) {
-    h += "<span class='rn'>" + T("lv")[w.band]
+    h += "<span class='rn" + (hotRate(w.mm) ? " hot" : "") + "'>" + T("lv")[w.band]
        + (w.mm != null ? " " + (stepCapped(w.step, w.pal) ? "\u2265" : "") + fmtRate(w.mm) + " mm/h" : "")
        + "</span>";
     if (w.mm != null) h += "<span class='st'>" + w.dbz + " dBZ</span>";
@@ -4769,7 +4899,7 @@ var OM_BUDGET = 200;                /* per day, against a 10,000 limit */
 var OM_MAXPTS = 60;
 
 var STOP = { state:"idle", range:null, west:null, east:null, wOn:null, eOn:null,
-             at:0, key:"", fails:0, n:0, src:"dist" };
+             wPk:null, ePk:null, at:0, key:"", fails:0, n:0, src:"dist" };
 
 function omBudget() {
   var today = new Date().toISOString().slice(0, 10);
@@ -4854,7 +4984,40 @@ function mytClock(ms) {
    Times come back as unix seconds; asking for local strings would have them
    parsed against the device clock, which is wrong the moment the phone is not
    on Malaysian time. Returns an absolute instant, not a countdown. */
-var STOP_MM = QUICK_MM;              /* 2.5 mm/h — moderate rain */
+var STOP_MM = QUICK_MM;              /* 2.5 mm/h — the work-stopping line */
+
+/* Intensity vocabulary, calibrated on the ground rather than from a textbook.
+   Stanley's own experience of these rates in Malaysia:
+     2.5   workers stop and look for shelter  (also the 速览 line)
+     4     medium to heavy
+     7     surely heavy rain
+     8+    leaning towards thunderstorm
+   Above that MET Malaysia's own bar applies: their thunderstorm warning is
+   issued for rain intensity exceeding 20 mm/h (met.gov.my, thunderstorm
+   warning criteria), a short-period warning of up to 6 hours per issue.
+   WMO would call 2.5-10 "moderate", but a farmer sheltering under a shed does
+   not care what Geneva calls it — the words follow the local meaning, and the
+   card names the rate it is actually talking about instead of saying "heavy"
+   for everything above the line. */
+function rainWord(mm) {
+  if (mm == null) return T("fcRain");
+  if (mm >= 20) return T("fcStorm");        /* MET thunderstorm criterion */
+  if (mm >= 7)  return T("fcHeavy");
+  if (mm >= 4)  return T("fcModHeavy");
+  return T("fcMod");
+}
+
+/* The strongest hour still ahead, so the label can name the right intensity. */
+function peakAt(times, vals) {
+  var now = Date.now(), pk = null;
+  for (var i = 0; i < vals.length; i++) {
+    var t = (+times[i]) * 1000;
+    if (!isFinite(t) || t < now) continue;
+    var v = vals[i] || 0;
+    if (pk === null || v > pk) pk = v;
+  }
+  return pk;
+}
 var NO_HEAVY = -1;                   /* nothing above the line in the window */
 
 /* Ask when the heavy rain eases only AFTER establishing that heavy rain is
@@ -4908,6 +5071,7 @@ function fetchStop(manual) {
        object is exactly what turns into a stale-data bug on the next change. */
     STOP.state = "idle"; STOP.range = null; STOP.n = 0;
     STOP.west = null; STOP.east = null; STOP.wOn = null; STOP.eOn = null;
+    STOP.wPk = null; STOP.ePk = null;
     return;
   }
   var key = pts.map(function (p) { return p.la + "," + p.lo; }).join(";");
@@ -4943,12 +5107,13 @@ function fetchStop(manual) {
     .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
     .then(function (j) {
       var arr = Array.isArray(j) ? j : [j], ends = [];
-      var side = [], starts = [];
+      var side = [], starts = [], peaks = [];
       arr.forEach(function (o, i) {
         var m = o && o.hourly;
         if (!m || !m.time) return;
         ends.push(dryAt(m.time, m.precipitation || []));
         starts.push(wetAt(m.time, m.precipitation || []));
+        peaks.push(peakAt(m.time, m.precipitation || []));
         side.push(pts[i] && pts[i].east ? "east" : "west");
       });
       if (!ends.length) throw new Error("empty");   /* no data is a failure, not a forecast */
@@ -5004,6 +5169,23 @@ function fetchStop(manual) {
       STOP.east = rangeOf("east");
       STOP.wOn = onsetOf("west");
       STOP.eOn = onsetOf("east");
+      /* The heaviest hour each region still faces, radar included: he only
+         pastes during real rain, so an observed rate above the model's own
+         peak is the truer number to name. */
+      function peakOf(pick) {
+        var pk = null;
+        peaks.forEach(function (v, i) {
+          if (side[i] !== pick || v == null) return;
+          if (pk === null || v > pk) pk = v;
+        });
+        pts.forEach(function (p, i) {
+          if ((p.east ? "east" : "west") !== pick || p.obs == null) return;
+          if (pk === null || p.obs > pk) pk = p.obs;
+        });
+        return pk;
+      }
+      STOP.wPk = peakOf("west");
+      STOP.ePk = peakOf("east");
       STOP.range = known.length
         ? { lo:Math.min.apply(null, known), hi:Math.max.apply(null, known),
             all:known.length === ends.length }
@@ -5031,6 +5213,8 @@ function stopWord() {
      clause and its own hedge — 可能 / likely, never 预计. A place with rain
      on the way matters more than one with nothing forecast, so this is
      reported ahead of the all-calm line. */
+  /* One template, the intensity word filled from the peak hour ahead. */
+  function say(key, mm) { return T(key).replace("{w}", rainWord(mm)); }
   function comingLine() {
     var parts = [];
     if (STOP.wOn && STOP.eOn) {
@@ -5040,7 +5224,9 @@ function stopWord() {
       var only = STOP.wOn || STOP.eOn;
       if (only) parts.push(mytClock(q15(only)));
     }
-    return parts.length ? T("stopComing") + " " + parts.join("  \u00b7  ") : null;
+    var pk = STOP.wOn && STOP.eOn ? Math.max(STOP.wPk || 0, STOP.ePk || 0)
+           : (STOP.wOn ? STOP.wPk : STOP.ePk);
+    return parts.length ? say("stopComing", pk) + " " + parts.join("  \u00b7  ") : null;
   }
   var argued = (STOP.west && STOP.west.argued) || (STOP.east && STOP.east.argued);
   /* Only regions with a real time window can be printed as one. */
@@ -5061,7 +5247,8 @@ function stopWord() {
   /* Name the region only when both are raining — labelling a single region
      "Peninsular" adds a word that carries no information. */
   if (wWin && eWin) {
-    return { t:T("stopBy") + " " + T("vPen") + " " + win(wWin)
+    return { t:say("stopBy", Math.max(STOP.wPk || 0, STOP.ePk || 0))
+                + " " + T("vPen") + " " + win(wWin)
                 + "  \u00b7  " + T("vBor") + " " + win(eWin), dim:false };
   }
   /* Pick the region that actually HAS a window — a calm region has no lo/hi,
@@ -5069,14 +5256,17 @@ function stopWord() {
      previous release added: one region easing while the other waits for rain. */
   var only = wWin || eWin;
   /* Nothing resolves anywhere: the rain runs past the forecast horizon. */
-  if (!only && !STOP.range) return { t:T("stopBeyond"), dim:false };
-  var base = T("stopBy") + " " + win(only || STOP.range);
+  var pk = (only === STOP.east) ? STOP.ePk
+         : (only === STOP.west) ? STOP.wPk
+         : Math.max(STOP.wPk || 0, STOP.ePk || 0) || null;
+  if (!only && !STOP.range) return { t:say("stopBeyond", pk), dim:false };
+  var base = say("stopBy", pk) + " " + win(only || STOP.range);
   /* Some points in this bulletin have radar and model disagreeing; the time
      above comes from the model, so mark whose word is being reported. */
   if (argued) base += "  \u00b7  " + T("stopArgued");
   /* one region easing while the other is still to be hit */
   var other = (cw ? STOP.wOn : ce ? STOP.eOn : null);
-  if (other) base += "  \u00b7  " + T("stopComing") + " "
+  if (other) base += "  \u00b7  " + say("stopComing", cw ? STOP.wPk : STOP.ePk) + " "
                    + T(cw ? "vPen" : "vBor") + " " + mytClock(q15(other));
   return { t:base, dim:false };
 }
@@ -5482,8 +5672,51 @@ window.addEventListener("resize", function () { clearTimeout(window._rz); window
 setInterval(function () { if (LAYERS.length) drawBulletin(); }, 60000);
 
 /* PWA — registers only when actually served over http(s) */
+/* ══ update checking ═══════════════════════════════════════════════
+   A PWA only re-checks its worker on navigation, so a session left open all
+   morning never notices a new build. This asks again whenever the app comes
+   back to the foreground — throttled, because on iOS every glance at another
+   app and back fires that event.
+
+   It NEVER reloads by itself. Swapping the code out from under someone who is
+   mid-paste, or halfway through a WhatsApp preview at 5:15am, would be a
+   worse bug than being one version behind. It tells him instead, and the
+   reload happens when he taps. */
+var SWREG = null, SWASK = 0, SWNEW = false;
+function swCheck() {
+  if (!SWREG || Date.now() - SWASK < 60000) return;
+  SWASK = Date.now();
+  try { SWREG.update().catch(function () {}); } catch (e) {}
+}
+function swAnnounce() {
+  if (SWNEW) return;
+  SWNEW = true;
+  var t = document.getElementById("toast");
+  t.style.cursor = "pointer";
+  t.onclick = function () { location.reload(); };
+  toast(T("swNew"));
+  try { render(); } catch (e) {}      /* redraw the stamp with the marker */
+}
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-  try { navigator.serviceWorker.register("./sw.js").catch(function () {}); } catch (e) {}
+  try {
+    navigator.serviceWorker.register("./sw.js").then(function (reg) {
+      SWREG = reg;
+      if (reg.waiting && navigator.serviceWorker.controller) swAnnounce();
+      reg.addEventListener("updatefound", function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener("statechange", function () {
+          /* "installed" with a controller already present means this is an
+             update, not the first install */
+          if (nw.state === "installed" && navigator.serviceWorker.controller) swAnnounce();
+        });
+      });
+    }).catch(function () {});
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) swCheck();
+    });
+    window.addEventListener("online", swCheck);
+  } catch (e) {}
 }
 
 applyLang(); paintBtns(); paintLayers(); render();
