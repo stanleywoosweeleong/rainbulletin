@@ -610,7 +610,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.42.0-20260728";
+var CACHE_VERSION = "rbmy-v4.43.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -1386,7 +1386,31 @@ function stepDbz(step) {
   return (lo + hi) / 2;                       /* the bin, not its lower edge */
 }
 function stepRate(step, pal) { return step <= 0 ? 0 : dbzToRate(stepDbz(step), pal); }
+/* ══ A ramp palette already knows the rate ═══════════════════════
+   Windy prints millimetres per hour on its own legend, so its ramp table
+   carries the true rate for every colour. Sending that number through the
+   dBZ ladder and back out through Marshall-Palmer was lossy in both
+   directions, measured against Windy's own ramp:
+     · a colour at the bottom of a 5 dBZ bin came back ~45% high, one at the
+       top ~30% low — no net bias, but +-40% of scatter on every reading
+     · at the legend ticks: 0.6 read as 0.93, 3 as 3.9, 12 as 16.5
+     · twelve ramp colours spanning 97-197 mm/h all reported ~75, flattened
+       by the 53 dBZ cap — exactly the flash-flood band
+   The ladder still drives district shading and the roll-call, so Windy and
+   Rain Alarm stay comparable; only the number shown to a reader changes, and
+   now it agrees with what Windy itself shows when he taps the same spot.
+   A step palette (Rain Alarm) is unchanged: its ladder IS dBZ, and its Z-R
+   is the honest interpretation there. */
+function rampPal(name) {
+  for (var i = 0; i < PALETTES.length; i++)
+    if (PALETTES[i].name === name && PALETTES[i].ramp) return PALETTES[i];
+  return null;
+}
+
 function stepCapped(step, pal) {
+  /* A ramp reports a measured rate, not a ladder rung, so it is never
+     "at or above" anything — the >= prefix belongs to step palettes only. */
+  if (rampPal(pal)) return false;
   return step > 0 && stepDbz(step) > (pal === undefined ? ZR : zrFor(pal)).cap;
 }
 function fmtRate(r) {
@@ -2651,7 +2675,7 @@ function pointInfo(lat, lon) {
   if (!LAYERS.length) return { seen:false, step:0 };
   var ck = lat.toFixed(4) + "," + lon.toFixed(4);
   if (PICACHE[ck]) return PICACHE[ck];
-  var seen = false, best = 0, pal = null;
+  var seen = false, best = 0, bestMM = 0, pal = null;
   for (var k = 0; k < LAYERS.length; k++) {
     var L = LAYERS[k], c = L.cal;
     var cx = (c.A * wmx(lon) + c.Bx) | 0, cy = (c.A * wmy(lat) + c.By) | 0;
@@ -2670,7 +2694,11 @@ function pointInfo(lat, lon) {
     for (var y = 0; y < n; y += st) for (var x = 0; x < n; x += st) {
       var o = (y * n + x) * 4;
       var b = bandOf(d[o], d[o+1], d[o+2], d[o+3]);
-      if (b > best) { best = b; pal = L.palette ? L.palette.name : null; }
+      /* Keep the heaviest rate seen at the heaviest band: the step already
+         reports the strongest pixel in the footprint, so the rate must come
+         from the same place or the two would describe different pixels. */
+      if (b > best) { best = b; bestMM = MATCH_MM; pal = L.palette ? L.palette.name : null; }
+      else if (b === best && b > 0 && MATCH_MM > bestMM) bestMM = MATCH_MM;
     }
   }
   if (!seen) { PICACHE[ck] = { seen:false, step:0 }; return PICACHE[ck]; }
@@ -2678,7 +2706,9 @@ function pointInfo(lat, lon) {
   return (PICACHE[ck] = {
     seen: true, step: best, pal: pal,
     band: best === 0 ? 0 : (rated ? stepBand(best, pal) : (GEN_BAND[best] || 1)),
-    mm: (rated && best > 0) ? Math.round(stepRate(best, pal) * 100) / 100 : null,
+    mm: (rated && best > 0)
+        ? Math.round((rampPal(pal) && bestMM > 0 ? bestMM : stepRate(best, pal)) * 100) / 100
+        : null,
     dbz: best > 0 ? stepDbz(best) : null
   });
 }
@@ -2720,7 +2750,10 @@ function wetDistricts() {
     var rated = RADAR && RADAR.rates;
     m[i] = { band:rated ? stepBand(st, t.pal) : (GEN_BAND[st] || 1), step:st, cov:cov, d:DIST[i],
              dbz:stepDbz(st), pal:t.pal,
-             mm:rated ? Math.round(stepRate(st, t.pal) * 100) / 100 : null };
+             /* districtRate() reports the ramp's own rates at the same top-15%
+                percentile the step uses, so the pair stays consistent. */
+             mm:rated ? Math.round((rampPal(t.pal) ? (districtRate(t) || stepRate(st, t.pal))
+                                                   : stepRate(st, t.pal)) * 100) / 100 : null };
   });
   return m;
 }
