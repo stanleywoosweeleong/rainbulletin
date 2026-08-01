@@ -625,7 +625,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.45.1-20260728";
+var CACHE_VERSION = "rbmy-v4.47.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -2838,6 +2838,13 @@ function rollCall() {
   return out;
 }
 
+/* Every redraw of the card must retire the cached PNG. This lived at the end
+   of render(), but the card is also redrawn WITHOUT a full render: when the
+   forecast lands, when the view switches to 半岛/东马, and on the minute
+   timer. So a WhatsApp tap could share an image that still said 预报读取中
+   while the caption beneath it already carried the forecast — the picture and
+   the words disagreeing in the same message. Invalidating here covers every
+   path, and renderPng only reads the finished SVG, so there is no loop. */
 function drawBulletin() {
   var svg = document.getElementById("bulletin");
   while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -3098,6 +3105,11 @@ function drawBulletin() {
     });
     svg.appendChild(t);
   });
+
+  /* the card is now final: retire the cached PNG and quietly rebuild it, so a
+     WhatsApp tap still shares synchronously inside the gesture */
+  invalidatePngWarm();
+  setTimeout(prewarmPng, 0);
 }
 
 /* word-wrap the roll-call into bold-state / plain-district runs */
@@ -3246,10 +3258,6 @@ function render() {
     + (typeof SWNEW !== "undefined" && SWNEW ? "  \u00b7  " + T("swNewShort") : "");
   paintQuick();                 /* a new paste changes who is over the line */
   paintRegionHint();
-  /* the card just changed: drop the stale PNG and quietly rebuild it, so a
-     WhatsApp tap can share without waiting */
-  invalidatePngWarm();
-  setTimeout(prewarmPng, 0);
 }
 
 /* ══ share ══ */
@@ -5077,6 +5085,20 @@ var STOP_MM = QUICK_MM;              /* 2.5 mm/h — the work-stopping line */
    not care what Geneva calls it — the words follow the local meaning, and the
    card names the rate it is actually talking about instead of saying "heavy"
    for everything above the line. */
+/* The rate a named intensity stops at. "大雨转小" must mean heavy rain ended,
+   so the clock has to stop when the rate leaves the heavy band — not when it
+   finally crosses the 2.5 work line hours later. Measured on a realistic
+   monsoon night (peak 9 mm/h at 19:51, below 7 by 22:51, below 2.5 only at
+   05:51) the old wording claimed the severe phase lasted seven hours longer
+   than it did. Floors mirror rainWord's bands exactly. */
+function rainFloor(mm) {
+  if (mm == null) return STOP_MM;
+  if (mm >= 20) return 20;
+  if (mm >= 7)  return 7;
+  if (mm >= 4)  return 4;
+  return STOP_MM;
+}
+
 function rainWord(mm) {
   if (mm == null) return T("fcRain");
   if (mm >= 20) return T("fcStorm");        /* MET thunderstorm criterion */
@@ -5113,31 +5135,33 @@ var NO_HEAVY = -1;                   /* nothing above the line in the window */
    CREATE convection in the right spot at the right hour, and IFS at 9km
    smooths exactly the cells that matter — an hour or three of timing error is
    normal. Hence the hedged wording in the label. */
-function wetAt(times, vals) {
+function wetAt(times, vals, thr) {
+  var lim = thr == null ? STOP_MM : thr;
   var now = Date.now();
   for (var i = 0; i < vals.length; i++) {
     var t = (+times[i]) * 1000;
     if (!isFinite(t) || t < now) continue;
-    if ((vals[i] || 0) >= STOP_MM) return t;
+    if ((vals[i] || 0) >= lim) return t;
   }
   return null;
 }
 
-function dryAt(times, vals) {
+function dryAt(times, vals, thr) {
+  var lim = thr == null ? STOP_MM : thr;
   var now = Date.now();
   var start = -1;
   for (var i = 0; i < vals.length; i++) {
     var t0 = (+times[i]) * 1000;
     if (!isFinite(t0) || t0 < now) continue;
-    if ((vals[i] || 0) >= STOP_MM) { start = i; break; }
+    if ((vals[i] || 0) >= lim) { start = i; break; }
   }
   if (start < 0) return NO_HEAVY;
   for (var j = start; j < vals.length - 1; j++) {
     var t = (+times[j]) * 1000;
     if (!isFinite(t)) continue;
-    if ((vals[j] || 0) < STOP_MM && (vals[j+1] || 0) < STOP_MM) return t;
+    if ((vals[j] || 0) < lim && (vals[j+1] || 0) < lim) return t;
   }
-  return null;                       /* heavy rain past the horizon */
+  return null;                       /* still at that level past the horizon */
 }
 
 function fetchStop(manual) {
@@ -5185,16 +5209,44 @@ function fetchStop(manual) {
     .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
     .then(function (j) {
       var arr = Array.isArray(j) ? j : [j], ends = [];
-      var side = [], starts = [], peaks = [];
+      /* Two passes, because the level to time against is not known until the
+         region's peak is: the card names the worst intensity a region faces,
+         so the clock must run against THAT level. Otherwise "大雨转小" reports
+         the moment the rain crosses 2.5 — hours after the heavy phase ended. */
+      var side = [], peaks = [], series = [];
       arr.forEach(function (o, i) {
         var m = o && o.hourly;
         if (!m || !m.time) return;
-        ends.push(dryAt(m.time, m.precipitation || []));
-        starts.push(wetAt(m.time, m.precipitation || []));
+        series.push({ t:m.time, v:m.precipitation || [] });
         peaks.push(peakAt(m.time, m.precipitation || []));
         side.push(pts[i] && pts[i].east ? "east" : "west");
       });
-      if (!ends.length) throw new Error("empty");   /* no data is a failure, not a forecast */
+      if (!series.length) throw new Error("empty");  /* no data is a failure, not a forecast */
+
+      /* The heaviest hour each region still faces, radar included: he only
+         pastes during real rain, so an observed rate above the model's own
+         peak is the truer number to name. */
+      function peakOf(pick) {
+        var pk = null;
+        peaks.forEach(function (v, i) {
+          if (side[i] !== pick || v == null) return;
+          if (pk === null || v > pk) pk = v;
+        });
+        pts.forEach(function (p, i) {
+          if ((p.east ? "east" : "west") !== pick || p.obs == null) return;
+          if (pk === null || p.obs > pk) pk = p.obs;
+        });
+        return pk;
+      }
+      var wPk = peakOf("west"), ePk = peakOf("east");
+      var floors = { west:rainFloor(wPk), east:rainFloor(ePk) };
+
+      var starts = [];
+      series.forEach(function (s, i) {
+        var f = floors[side[i]];
+        ends.push(dryAt(s.t, s.v, f));
+        starts.push(wetAt(s.t, s.v, f));
+      });
       /* A window per region, because one line covering both was misleading:
          30 districts raining in Johor AND Sarawak read as "16:00-20:00", which
          looks like seven hours of rain in one place when it is really one
@@ -5212,7 +5264,9 @@ function fetchStop(manual) {
         ends.forEach(function (v, i) {
           if (side[i] !== pick) return;
           total++;
-          var wetNow = pts[i] && pts[i].obs != null && pts[i].obs >= STOP_MM;
+          /* judged at the level being named: radar showing 3 mm/h does not
+             contradict a model that offers no HEAVY hour */
+          var wetNow = pts[i] && pts[i].obs != null && pts[i].obs >= floors[pick];
           if (v === NO_HEAVY) {
             if (wetNow) {                     /* radar says otherwise */
               argued++;
@@ -5247,23 +5301,8 @@ function fetchStop(manual) {
       STOP.east = rangeOf("east");
       STOP.wOn = onsetOf("west");
       STOP.eOn = onsetOf("east");
-      /* The heaviest hour each region still faces, radar included: he only
-         pastes during real rain, so an observed rate above the model's own
-         peak is the truer number to name. */
-      function peakOf(pick) {
-        var pk = null;
-        peaks.forEach(function (v, i) {
-          if (side[i] !== pick || v == null) return;
-          if (pk === null || v > pk) pk = v;
-        });
-        pts.forEach(function (p, i) {
-          if ((p.east ? "east" : "west") !== pick || p.obs == null) return;
-          if (pk === null || p.obs > pk) pk = p.obs;
-        });
-        return pk;
-      }
-      STOP.wPk = peakOf("west");
-      STOP.ePk = peakOf("east");
+      STOP.wPk = wPk;
+      STOP.ePk = ePk;
       STOP.range = known.length
         ? { lo:Math.min.apply(null, known), hi:Math.max.apply(null, known),
             all:known.length === ends.length }
