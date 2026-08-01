@@ -157,8 +157,19 @@ button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight
 #quick .qwho{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 #quick .qn{font-size:14px;font-weight:700;line-height:1.32;overflow-wrap:anywhere}
 #quick .qd{color:var(--dim);font-size:12px;font-family:var(--mono);letter-spacing:.03em}
+/* A filled pill, like the roster's tag. The band colours (--r0..--r4) are
+   mixed for the WHITE bulletin card; as text on this navy panel the darker
+   blues all but vanish, which is what made a 8.1 mm/h reading unreadable.
+   White on the band colour keeps the intensity legible AND still carries it. */
 #quick .qmm{font-family:var(--mono);font-weight:700;white-space:nowrap;
-  font-size:14.5px;padding-top:1px}
+  font-size:13.5px;padding:4px 9px;border-radius:3px;
+  background:var(--jmm);color:#fff;border:1px solid var(--jmm)}
+#quick .qmm.b0,#quick .qmm.b1{background:var(--r1);border-color:var(--r1);color:#0b1030}
+#quick .qmm.b2{background:var(--r2);border-color:var(--r2)}
+#quick .qmm.b3{background:var(--r3);border-color:var(--r3)}
+#quick .qmm.b4{background:#1b1bb0;border-color:#1b1bb0}
+#quick .qmm.hot{background:#ff5b52 !important;border-color:#ff5b52 !important;
+  color:#2a0603 !important;font-weight:800}
 #quick .qnone{padding:10px 11px;color:var(--dim);font-size:12.5px}
 .fgrp{border-bottom:1px solid var(--line)}
 .fgrp:last-child{border-bottom:0}
@@ -614,7 +625,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.45.0-20260728";
+var CACHE_VERSION = "rbmy-v4.45.1-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -3701,9 +3712,10 @@ function paintQuick() {
       d.className = "qd"; d.textContent = r.d ? distName(r.d) : "";
       who.appendChild(n); who.appendChild(d);
       var mm = document.createElement("span");
-      mm.className = "qmm" + (hotRate(r.pi.mm) ? " hot" : "");
-      if (!hotRate(r.pi.mm))
-        mm.style.color = "var(--r" + Math.min(4, Math.max(0, r.pi.band)) + ")";
+      /* the band rides as a class so the pill can pick a readable pairing,
+         rather than painting card-ink onto a dark panel */
+      mm.className = "qmm b" + Math.min(4, Math.max(0, r.pi.band))
+                   + (hotRate(r.pi.mm) ? " hot" : "");
       mm.textContent = (stepCapped(r.pi.step, r.pi.pal) ? "\u2265" : "")
                      + fmtRate(r.pi.mm) + " mm/h";
       row.appendChild(who); row.appendChild(mm);
