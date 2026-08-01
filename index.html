@@ -605,6 +605,18 @@ var NS            = "rainbulletin-my";
    · learnBasemap/edgeMap  basemap model, edge bitmap + rain mask (msk)
    · chamfer/localContrast matching metrics; both skip rain-masked points —
                            coast under echo is unknown, not wrong
+   · DERIVED STATE — the source of most bugs in this app. Each cache has ONE
+     funnel that must stay the only one:
+       PICACHE   ← clearPointCache(), called inside rebuildRadar()
+       BANDCACHE/MMCACHE ← resetBandCache(), on basemap/palette/sensitivity change
+       RADAR     ← rebuildRadar(), on any layer add/remove
+       PNGWARM   ← invalidatePngWarm(), at the END of drawBulletin()
+     When adding a value that travels with a cell or a layer, add it to the
+     copy inside rebuildRadar too — rHist was missed there and every district
+     silently fell back to the old rate path. When adding a consumer of a
+     per-layer property, judge it PER CELL (cell.pal), never with a global
+     every()/some() over LAYERS — that made one legend-less paste mute mm/h
+     for the whole bulletin.
    · frameCoverage ....... diagnostic only: fraction of outline in frame.
                            NEVER let it rank the search — it rises as a guess
                            zooms in, and once steered a half-size peninsula
@@ -625,7 +637,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.47.0-20260728";
+var CACHE_VERSION = "rbmy-v4.48.1-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -799,6 +811,8 @@ var I18N = {
     fcMod:"\u4e2d\u96e8", fcModHeavy:"\u4e2d\u5230\u5927\u96e8", fcHeavy:"\u5927\u96e8",
     fcStorm:"\u96f7\u66b4\u7ea7\u5927\u96e8", fcRain:"\u964d\u96e8",
     stopNoHeavy:"\u672a\u6765\u6570\u5c0f\u65f6\u65e0\u4e2d\u96e8\u4ee5\u4e0a\u9884\u62a5",
+    stopBudget:"\u9884\u62a5\u5df2\u8fbe\u4eca\u65e5\u8bfb\u53d6\u4e0a\u9650 \u2014 \u660e\u65e5\u6062\u590d",
+    stopFail:"\u9884\u62a5\u8bfb\u53d6\u5931\u8d25 \u2014 \u518d\u8d34\u4e00\u6b21\u53ef\u91cd\u8bd5",
     stopComing:"\u53ef\u80fd\u8f6c{w}",
     stopArgue:"\u96f7\u8fbe\u4ecd\u6709\u5f3a\u964d\u96e8\uff0c\u9884\u62a5\u5df2\u8f6c\u5c0f \u2014 \u4ee5\u96f7\u8fbe\u4e3a\u51c6",
     stopArgued:"\u90e8\u5206\u5730\u70b9\u9884\u62a5\u504f\u4f4e",
@@ -823,7 +837,7 @@ var I18N = {
     waHttps:"\u672c\u5730\u6587\u4ef6\u65e0\u6cd5\u76f4\u63a5\u5206\u4eab \u00b7 \u8bf7\u7528\u7f51\u5740\u6253\u5f00",
     waBlocked:"\u5f39\u7a97\u88ab\u62e6 \u00b7 \u6587\u5b57\u5df2\u590d\u5236\uff0c\u56fe\u5df2\u4e0b\u8f7d",
     zrBadFit:"\u4e24\u8005\u4e0d\u4e00\u81f4\uff0c\u4e0d\u53ef\u7528",
-    zrNoCross:"\u9700\u8981\u540c\u65f6\u8d34\u5165 Rain Alarm \u4e0e Windy \u4e24\u5f20\u56fe", recalled:"\u6cbf\u7528\u5df2\u5b58\u5b9a\u4f4d", queued:"\u5f85\u5904\u7406", wetCount:"\u53bf\u5c5e\u6709\u96e8", shapeAt:"\u8f6e\u5ed3\u5339\u914d", margin:"\u9886\u5148", more:"\u66f4\u591a\u53bf\u5c5e", listMin:"\u540d\u5355\u2265\u5c0f\u96e8",
+    zrNoCross:"\u9700\u8981\u540c\u65f6\u8d34\u5165 Rain Alarm \u4e0e Windy \u4e24\u5f20\u56fe", recalled:"\u6cbf\u7528\u5df2\u5b58\u5b9a\u4f4d", wetCount:"\u53bf\u5c5e\u6709\u96e8", shapeAt:"\u8f6e\u5ed3\u5339\u914d", margin:"\u9886\u5148", more:"\u66f4\u591a\u53bf\u5c5e", listMin:"\u540d\u5355\u2265\u5c0f\u96e8",
     scanning:"\u8bc6\u522b\u4e2d\u2026\u8bf7\u7a0d\u5019", scanOk:"\u5df2\u5b9a\u4f4d", scanNo:"\u65e0\u6cd5\u81ea\u52a8\u5b9a\u4f4d \u2014 \u8bf7\u6539\u7528\u624b\u52a8\u70b9\u9009",
     manual:"\u624b\u52a8\u70b9\u9009",  
     noImg:"尚未贴图 — 请贴入雷达截图",
@@ -900,6 +914,8 @@ var I18N = {
     fcMod:"Moderate rain", fcModHeavy:"Moderate-heavy rain", fcHeavy:"Heavy rain",
     fcStorm:"Thunderstorm-grade rain", fcRain:"Rain",
     stopNoHeavy:"Nothing at or above moderate forecast in the next hours",
+    stopBudget:"Daily forecast limit reached \u2014 resumes tomorrow",
+    stopFail:"Forecast could not be fetched \u2014 paste again to retry",
     stopComing:"{w} likely from",
     stopArgue:"Radar still shows heavy rain; the forecast already has it easing \u2014 trust the radar",
     stopArgued:"forecast reads low at some points",
@@ -924,7 +940,7 @@ var I18N = {
     waHttps:"Direct share needs the hosted URL, not a local file",
     waBlocked:"Popup blocked \u00b7 text copied, image downloaded",
     zrBadFit:"sources disagree \u2014 not usable",
-    zrNoCross:"Needs a Rain Alarm and a Windy layer loaded together", recalled:"Reused saved calibration", queued:"queued", wetCount:"districts raining", shapeAt:"shape match", margin:"margin", more:"more districts", listMin:"list \u2265 light",
+    zrNoCross:"Needs a Rain Alarm and a Windy layer loaded together", recalled:"Reused saved calibration", wetCount:"districts raining", shapeAt:"shape match", margin:"margin", more:"more districts", listMin:"list \u2265 light",
     scanning:"Locating\u2026 one moment", scanOk:"Located", scanNo:"Could not locate \u2014 switch to manual anchors",
     manual:"Manual anchors",  
     noImg:"No image yet \u2014 paste a radar screenshot",
@@ -5323,7 +5339,13 @@ function q15(ms) { return Math.ceil(ms / (60 * 60000)) * (60 * 60000); }
 function stopWord() {
   if (STOP.state === "loading") return { t:T("stopWait"), dim:true };
   if (STOP.state === "offline") return { t:T("stopOffline"), dim:true };
-  if (STOP.state === "budget" || STOP.state === "fail") return null;
+  /* These two used to return null, which drew NOTHING — indistinguishable
+     from a bulletin that simply had no forecast to give. An absent line is
+     exactly the silent failure this app is built to avoid, so both now say
+     what happened. Dimmed and kept out of the broadcast, like every other
+     line that reports on the app rather than on the weather. */
+  if (STOP.state === "budget") return { t:T("stopBudget"), dim:true };
+  if (STOP.state === "fail")   return { t:T("stopFail"), dim:true };
   if (STOP.state !== "ok") return null;
   var cw = STOP.west && STOP.west.calm, ce = STOP.east && STOP.east.calm;
   /* "Coming" is a different statement from "easing", so it gets its own
