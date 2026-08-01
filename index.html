@@ -610,7 +610,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.43.0-20260728";
+var CACHE_VERSION = "rbmy-v4.44.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -2651,12 +2651,24 @@ function rebuildRadar() {
     if (best) {
       cells[i].inn = best.inn; cells[i].echo = best.echo;
       cells[i].hist = best.hist.slice();
+      /* The ramp's own rates travel with the cell too. Without these the
+         merged district had no rHist, districtRate() returned 0, and every
+         district quietly fell back to the reflectivity round trip that
+         v4.43.0 was meant to remove — the point readings were corrected but
+         the map and the roll-call were not. */
+      cells[i].rHist = best.rHist ? best.rHist.slice() : null;
+      cells[i].rSum = best.rSum; cells[i].rN = best.rN;
       cells[i].pal = bestPal;
     }
   });
   RADAR = {
     cells: cells,
-    rates: LAYERS.length > 0 && LAYERS.every(function (L) { return !!L.palette; }),
+    /* ANY layer with a palette means some districts have real rates. This was
+       every(), so a single paste whose legend was cropped off disabled mm/h
+       everywhere — the 速览 panel announced "this source gives no rainfall"
+       over a Windy bulletin, and the map fell back to the ordinal bands, which
+       shade far darker. Per-district truth is carried on the cell's own pal. */
+    rates: LAYERS.some(function (L) { return !!L.palette; }),
     get label() {
       return LAYERS.map(function (L) { return regionLabel(L.region) + " " + L.label; }).join("  \u00b7  ");
     }
@@ -2702,7 +2714,7 @@ function pointInfo(lat, lon) {
     }
   }
   if (!seen) { PICACHE[ck] = { seen:false, step:0 }; return PICACHE[ck]; }
-  var rated = RADAR && RADAR.rates;
+  var rated = !!pal;                        /* the matched pixel's own palette */
   return (PICACHE[ck] = {
     seen: true, step: best, pal: pal,
     band: best === 0 ? 0 : (rated ? stepBand(best, pal) : (GEN_BAND[best] || 1)),
@@ -2747,7 +2759,7 @@ function wetDistricts() {
     var cov = t.echo / t.inn;
     if (cov < WET_MIN_COV && t.echo < WET_MIN_CELLS) return;
     var st = districtStep(t);
-    var rated = RADAR && RADAR.rates;
+    var rated = !!t.pal;                    /* this district's own layer */
     m[i] = { band:rated ? stepBand(st, t.pal) : (GEN_BAND[st] || 1), step:st, cov:cov, d:DIST[i],
              dbz:stepDbz(st), pal:t.pal,
              /* districtRate() reports the ramp's own rates at the same top-15%
@@ -4508,7 +4520,14 @@ function addLayer() {
      so nothing is double counted. */
   var pname = palette ? palette.name : "-";
   LAYERS = LAYERS.filter(function (L) {
-    return !(L.region === region && (L.palette ? L.palette.name : "-") === pname);
+    if (L.region !== region) return true;
+    var lname = L.palette ? L.palette.name : "-";
+    if (lname === pname) return false;             /* same view, same source */
+    /* A layer that arrived without a legend can never be replaced by name,
+       so it would sit there muting rates for good. A palette-bearing paste
+       of the same region evicts it. */
+    if (palette && !L.palette) return false;
+    return true;
   });
   LAYERS.push({ cal:cal, ctx:IMGX, canvas:IMGC, iw:IMGC.width, ih:IMGC.height,
                 cells:cells, region:region, at:Date.now(), basemap:basemap, palette:palette,
