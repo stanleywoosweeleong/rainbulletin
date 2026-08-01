@@ -151,10 +151,14 @@ button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight
 #quick .qst{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.06em;
   padding:7px 11px 3px;border-top:1px solid var(--line)}
 #quick .qst:first-child{border-top:0}
-#quick .qrow{display:flex;align-items:baseline;gap:9px;padding:6px 11px}
-#quick .qn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#quick .qd{color:var(--dim);font-size:11.5px}
-#quick .qmm{font-family:var(--mono);font-weight:700;white-space:nowrap}
+/* Names were truncated to one cramped line. The place gets its own column and
+   wraps freely; the rate keeps its own, bigger and never wrapping. */
+#quick .qrow{display:flex;align-items:flex-start;gap:12px;padding:9px 12px}
+#quick .qwho{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#quick .qn{font-size:14px;font-weight:700;line-height:1.32;overflow-wrap:anywhere}
+#quick .qd{color:var(--dim);font-size:12px;font-family:var(--mono);letter-spacing:.03em}
+#quick .qmm{font-family:var(--mono);font-weight:700;white-space:nowrap;
+  font-size:14.5px;padding-top:1px}
 #quick .qnone{padding:10px 11px;color:var(--dim);font-size:12.5px}
 .fgrp{border-bottom:1px solid var(--line)}
 .fgrp:last-child{border-bottom:0}
@@ -610,7 +614,7 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.44.0-20260728";
+var CACHE_VERSION = "rbmy-v4.45.0-20260728";
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -1420,13 +1424,20 @@ function fmtRate(r) {
   return r.toFixed(2);
 }
 /* bands follow MET Malaysia, whose hujan lebat threshold is 20 mm/h */
+/* The observed bands and the forecast wording must break at the same rates,
+   or the same storm is "Moderate" in the roster and 大雨 on the forecast line.
+   The boundary that disagreed was this one: 10 came from WMO, but his field
+   experience is that 7 mm/h is already surely heavy, and MET's own
+   thunderstorm criterion (20 mm/h) sits on top of both ladders. Moving it
+   also moves the map shade for districts between 7 and 10 — deliberately,
+   since the colour should mean what the word says. */
 function rateBand(r) {
   if (r < 0.05) return 0;
   if (r < 0.5) return 1;
-  if (r < 2.5) return 2;
-  if (r < 10) return 3;
-  if (r < 20) return 4;
-  return 5;
+  if (r < 2.5) return 2;      /* below this, work continues */
+  if (r < 7) return 3;        /* moderate: shelter */
+  if (r < 20) return 4;       /* heavy */
+  return 5;                   /* MET thunderstorm criterion */
 }
 /* bands cut at MET Malaysia's own hujan lebat threshold of 20 mm/h */
 function stepBand(step, pal) { return rateBand(stepRate(step, pal)); }
@@ -3682,17 +3693,20 @@ function paintQuick() {
     byState[st].sort(function (a, b) { return b.pi.mm - a.pi.mm; }).forEach(function (r) {
       var row = document.createElement("div");
       row.className = "qrow";
+      var who = document.createElement("span");
+      who.className = "qwho";
       var n = document.createElement("span");
       n.className = "qn"; n.textContent = r.f.n;
       var d = document.createElement("span");
       d.className = "qd"; d.textContent = r.d ? distName(r.d) : "";
+      who.appendChild(n); who.appendChild(d);
       var mm = document.createElement("span");
       mm.className = "qmm" + (hotRate(r.pi.mm) ? " hot" : "");
       if (!hotRate(r.pi.mm))
         mm.style.color = "var(--r" + Math.min(4, Math.max(0, r.pi.band)) + ")";
       mm.textContent = (stepCapped(r.pi.step, r.pi.pal) ? "\u2265" : "")
                      + fmtRate(r.pi.mm) + " mm/h";
-      row.appendChild(n); row.appendChild(d); row.appendChild(mm);
+      row.appendChild(who); row.appendChild(mm);
       host.appendChild(row);
     });
   });
