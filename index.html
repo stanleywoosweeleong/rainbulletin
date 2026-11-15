@@ -5178,8 +5178,13 @@ async function collectShared() {
      1. one HTTP call, however many farms — Open-Meteo takes up to 1000
         coordinate pairs in a single request
      2. coordinates rounded to ~1 km and de-duplicated before asking
-     3. answers cached against that coordinate set for 15 minutes
-     4. a hard floor of 4 minutes between calls whatever else happens
+     3. the MODEL's answer is cached against that coordinate set for 15
+        minutes — but its wording is re-read against the radar on every paste,
+        because the peak named and the easing level depend on what is falling
+     4. a floor of 4 minutes before asking again about the SAME set of points
+        (retries after a failure). A changed set is a different question and
+        goes through: West and East are pasted seconds apart, and a floor that
+        blocked the second left the card with a forecast for half the country
      5. a self-imposed daily budget of 200 calls against a limit of 10,000
      6. three consecutive failures and it stops trying until the next paste
      7. never on a timer — only when a layer is added or the line is tapped
@@ -5191,7 +5196,12 @@ var OM_BUDGET = 200;                /* per day, against a 10,000 limit */
 var OM_MAXPTS = 60;
 
 var STOP = { state:"idle", range:null, west:null, east:null, wOn:null, eOn:null,
-             wPk:null, ePk:null, at:0, key:"", fails:0, n:0, src:"dist" };
+             wPk:null, ePk:null, at:0, key:"", fails:0, n:0, src:"dist",
+             /* model: the raw answer for `key`, kept so the wording can be
+                re-read against a newer radar image without another call.
+                asked: the last point set actually requested, for the floor.
+                seq: only the newest request may write its answer. */
+             model:null, asked:"", seq:0 };
 
 function omBudget() {
   var today = new Date().toISOString().slice(0, 10);
@@ -5384,14 +5394,29 @@ function fetchStop(manual) {
   }
   var key = pts.map(function (p) { return p.la + "," + p.lo; }).join(";");
 
-  if (STOP.key === key && STOP.state === "ok" && Date.now() - STOP.at < OM_TTL) return;
+  if (STOP.key === key && STOP.state === "ok" && STOP.model && Date.now() - STOP.at < OM_TTL) {
+    /* Same places, model answer still fresh — but the radar may not say what
+       it said when that answer was read. A new image showing heavier rain
+       changes the peak that is named and the level the clock runs against,
+       so the cached series is read again against the current observations.
+       No network call. */
+    stopRead(pts, STOP.model);
+    drawBulletin();
+    return;
+  }
+  /* A request is already out. If it is for a different set of points — a
+     second screenshot landed while the first was being asked about — its
+     answer will cover only part of the card. Nothing is sent now; the
+     completion handler below calls back in and asks about the full set. */
   if (!manual && STOP.state === "loading") return;
   if (STOP.fails >= 3 && !manual) return;
   if (!navigator.onLine) { STOP.state = "offline"; drawBulletin(); return; }
-  if (Date.now() - (store.get("omLast", 0)) < OM_FLOOR && !manual) return;
+  if (key === STOP.asked && Date.now() - (store.get("omLast", 0)) < OM_FLOOR && !manual) return;
   if (omBudget().n >= OM_BUDGET) { STOP.state = "budget"; drawBulletin(); return; }
 
-  STOP.state = "loading"; STOP.key = key; STOP.n = pts.length;
+  STOP.state = "loading"; STOP.key = key; STOP.asked = key; STOP.n = pts.length;
+  STOP.model = null;
+  var seq = ++STOP.seq;
   drawBulletin();
   store.set("omLast", Date.now());
   omSpend();
@@ -5414,7 +5439,33 @@ function fetchStop(manual) {
   fetch(q, ctl ? { signal:ctl.signal } : undefined)
     .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
     .then(function (j) {
-      var arr = Array.isArray(j) ? j : [j], ends = [];
+      if (seq !== STOP.seq) return;        /* a newer request owns the line now */
+      var arr = Array.isArray(j) ? j : [j];
+      stopRead(pts, arr);                  /* throws on an empty answer */
+      STOP.state = "ok"; STOP.at = Date.now(); STOP.fails = 0;
+      STOP.model = arr;
+      drawBulletin();
+      stopFollowUp();
+    })
+    .catch(function () {
+      if (seq !== STOP.seq) return;
+      STOP.fails++; STOP.state = "fail"; STOP.key = ""; STOP.model = null;
+      drawBulletin();
+      stopFollowUp();
+    });
+}
+/* The points on the card may have changed while the request was out. Ask
+   again if so; fetchStop's own guards (same-set floor, budget, three strikes)
+   still apply, and an unchanged set returns at once. */
+function stopFollowUp() {
+  try { fetchStop(false); } catch (e) {}
+}
+/* Turn the model's hourly series into the fields the card prints. Pure
+   interpretation: `pts` carries what the radar shows now, `arr` is the model's
+   answer for those same points in the same order. Called on arrival and again
+   whenever a new image changes the observations under a cached answer. */
+function stopRead(pts, arr) {
+      var ends = [];
       /* Two passes, because the level to time against is not known until the
          region's peak is: the card names the worst intensity a region faces,
          so the clock must run against THAT level. Otherwise "大雨转小" reports
@@ -5502,7 +5553,6 @@ function fetchStop(manual) {
         return soon;
       }
       var known = ends.filter(function (v) { return v !== null && v !== NO_HEAVY; });
-      STOP.state = "ok"; STOP.at = Date.now(); STOP.fails = 0;
       STOP.west = rangeOf("west");
       STOP.east = rangeOf("east");
       STOP.wOn = onsetOf("west");
@@ -5513,12 +5563,6 @@ function fetchStop(manual) {
         ? { lo:Math.min.apply(null, known), hi:Math.max.apply(null, known),
             all:known.length === ends.length }
         : null;
-      drawBulletin();
-    })
-    .catch(function () {
-      STOP.fails++; STOP.state = "fail"; STOP.key = "";
-      drawBulletin();
-    });
 }
 
 /* A clock time, not a countdown. The bulletin is forwarded and read minutes or

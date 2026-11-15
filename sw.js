@@ -95,7 +95,8 @@ self.addEventListener("fetch", function (e) {
         }
         await cache.put("./__shared/count", new Response(String(files.length)));
       } catch (err) { /* fall through to the app either way */ }
-      return Response.redirect("./?shared=1", 303);
+      /* absolute, so it does not lean on the worker's base URL */
+      return Response.redirect(new URL("./?shared=1", self.location.href).href, 303);
     })());
     return;
   }
