@@ -425,7 +425,7 @@ body.picking{overflow:hidden}
       <h1 class="zh" data-i="brandZh">雨情 Lab</h1>
       <h1 class="en" data-i="brandEn" hidden>RAINBULLETIN Lab</h1>
       <span class="spacer"></span>
-      <button class="langbtn" id="lang">EN</button>
+      <button class="langbtn" id="lang">中文</button>
     </div>
     <span class="sub" data-i="tagline">降雨县属着色</span>
   </div>
@@ -1153,7 +1153,7 @@ var I18N = {
     source:"Imej radar ihsan Windy.com dan Rain Alarm Pro (rain-alarm.com), dengan penghargaan. Pewarnaan daerah datang sepenuhnya daripada tangkapan skrin radar yang anda tampal (cerapan) — tiada API yang membekalkannya. Aplikasi ini memanggil satu sahaja API cuaca, Open-Meteo (ECMWF IFS 9km), dan hanya untuk baris “hujan dijangka reda” di bawah kanan; jika panggilan itu gagal, buletin tetap lengkap. Sempadan: Malaysia ADM2, 160 daerah. Rujukan peribadi sahaja; amaran rasmi dikeluarkan oleh MET Malaysia."
   }
 };
-/* Order the language button cycles through; the button shows the NEXT one. */
+/* Order the language button cycles through; the button shows the CURRENT one. */
 var LANGS = ["zh", "en", "ms"];
 var LANG_TAG = { zh:"zh-Hans", en:"en", ms:"ms" };
 var LANG_BTN = { zh:"\u4e2d\u6587", en:"EN", ms:"BM" };
@@ -5610,10 +5610,8 @@ function paintBtns() {
 function applyLang() {
   document.documentElement.setAttribute("lang", LANG_TAG[LANG]);
   document.documentElement.setAttribute("data-lang", LANG);
-  var nextLang = LANGS[(LANGS.indexOf(LANG) + 1) % LANGS.length];
-  var langBtn = document.getElementById("lang");
-  langBtn.textContent = LANG_BTN[nextLang];
-  langBtn.setAttribute("lang", LANG_TAG[nextLang]);
+  /* The button names the language in use now; tapping moves to the next. */
+  document.getElementById("lang").textContent = LANG_BTN[LANG];
   [].forEach.call(document.querySelectorAll("[data-i]"), function (n) {
     var v = I18N[LANG][n.getAttribute("data-i")]; if (v) n.textContent = v;
   });
