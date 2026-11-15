@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1020">
+<script>
+/* Theme before first paint, so a light-mode phone never flashes dark. A saved
+   choice wins; with none saved the phone's own setting decides. */
+(function () {
+  var t = null;
+  try { t = JSON.parse(localStorage.getItem("rainbulletin-my:theme")); } catch (e) {}
+  if (t !== "light" && t !== "dark") {
+    t = (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+  }
+  document.documentElement.setAttribute("data-theme", t);
+})();
+</script>
 <link rel="manifest" href="./manifest.json">
 <!-- Without these the browser probes /favicon.ico and logs a 404 on every load;
      GitHub Pages has no such file and the app already ships an SVG icon. -->
@@ -23,8 +35,30 @@
   --ink:#101014; --paper:#fff; --jmm:#2323c8; --slate:#0f1020; --steel:#191c30;
   --line:#2b3050; --amber:#f0a92c; --red:#d9433f; --dim:#a6acce; --text:#f2f4ff;
   --r0:#c9d2f5; --r1:#8e9deb; --r2:#5061dc; --r3:#2323c8; --r4:#14148c;
+  /* chrome tokens that differ between the dark and light themes */
+  --well:#0d0f1c; --hover:#454d80; --strong:#fff; --soft:#cfd6f5; --link:#8ea2ff;
+  --faint:#4a4f70; --hair:#232744; --chip:#2a2f4a; --chip-line:#0a0c18;
+  --on-bg:#181d3f; --on-line:#3a44a8; --near-bg:#171b30;
+  --hot:#ff5b52; --hot-ink:#2a0603; --star:#f5c23a; --warn:#f0a92c;
+  --toast-bg:#fff; --toast-fg:#101014;
+  --cardshadow:0 1px 0 #000,0 10px 34px -14px #000;
+  color-scheme:dark;
   --sans:"Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+}
+/* Light theme: the same instrument in daylight. Only the chrome changes — the
+   bulletin card is white paper in both, because it is what gets broadcast.
+   data-theme is set by the small script in <head> before first paint. */
+:root[data-theme="light"]{
+  --slate:#f1f2f8; --steel:#fff; --line:#cdd1e4; --dim:#555b7c; --text:#15172b;
+  --red:#c5302c;
+  --well:#e8eaf4; --hover:#8089bd; --strong:#0b0d1e; --soft:#3b4168; --link:#2a39c4;
+  --faint:#8a90ad; --hair:#e2e5f0; --chip:#dde0ee; --chip-line:#b7bcd4;
+  --on-bg:#e3e7ff; --on-line:#8e9deb; --near-bg:#eceefb;
+  --hot:#d3261c; --hot-ink:#fff; --star:#a87400; --warn:#9a5a00;
+  --toast-bg:#15172b; --toast-fg:#fff;
+  --cardshadow:0 0 0 1px var(--line),0 10px 30px -18px #1a1d40;
+  color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -56,14 +90,16 @@ body{
   background:var(--steel);color:var(--text);
   border:1px solid var(--line);border-radius:4px;padding:6px 12px;cursor:pointer
 }
-.langbtn:hover{border-color:#3d4470}
+.langbtn:hover{border-color:var(--hover)}
+#theme{padding-left:10px;padding-right:10px;min-width:38px;font-size:15px;line-height:1}
 @media(max-width:640px){
   /* a 44px target, and legible at arm's length in daylight */
   .langbtn{font-size:15px;padding:9px 15px;min-height:44px;border-radius:6px}
+  #theme{font-size:18px;padding:9px 12px;min-width:46px}
 }
 
 /* ── bulletin card (the signature) ── */
-.card{background:var(--paper);border-radius:3px;overflow:hidden;box-shadow:0 1px 0 #000,0 10px 34px -14px #000}
+.card{background:var(--paper);border-radius:3px;overflow:hidden;box-shadow:var(--cardshadow)}
 #bulletin{display:block;width:100%;height:auto;touch-action:manipulation}
 #bulletin text{font-family:var(--sans)}
 
@@ -96,12 +132,12 @@ body{
 .probe b{color:var(--text);font-family:var(--sans);font-weight:700;letter-spacing:0;
   font-size:14.5px}
 .probe .st{color:var(--dim);font-size:12px}
-.probe .rn{color:#8ea2ff;font-weight:700}
+.probe .rn{color:var(--link);font-weight:700}
 /* One red, used only for rates at or above HOT_MM — if it appeared anywhere
    else it would stop meaning "look at this". */
-.hot{color:#ff5b52 !important;font-weight:800}
-#quick .qmm.hot{color:#ff5b52 !important}
-.tag.hot{color:#ff5b52;font-weight:800}
+.hot{color:var(--hot) !important;font-weight:800}
+#quick .qmm.hot{color:var(--hot) !important}
+.tag.hot{color:var(--hot);font-weight:800}
 @media(max-width:520px){
   /* the readings must fit beside the name on one line, so they get a notch
      smaller on a phone rather than being allowed to wrap */
@@ -128,7 +164,7 @@ button.tool{
   background:var(--steel);color:var(--text);border:1px solid var(--line);
   border-radius:2px;padding:8px 12px;cursor:pointer
 }
-button.tool:hover{border-color:#454d80}
+button.tool:hover{border-color:var(--hover)}
 button.tool[aria-pressed="true"]{background:var(--jmm);border-color:var(--jmm);color:#fff}
 button.tool.go{background:var(--jmm);border-color:var(--jmm);color:#fff;font-weight:600}
 button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight:700}
@@ -147,7 +183,7 @@ button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight
 #credGuide ul{margin:4px 0 0;padding-left:16px;list-style:none}
 #credGuide ul li{position:relative;padding:0 0 5px 0;font-size:12.5px;color:var(--dim);line-height:1.5}
 #credGuide ul li::before{content:"\00b7";position:absolute;left:-12px;color:var(--dim)}
-#quick{border:1px solid var(--line);border-radius:3px;background:#0d0f1c;padding:4px 0;margin-bottom:6px}
+#quick{border:1px solid var(--line);border-radius:3px;background:var(--well);padding:4px 0;margin-bottom:6px}
 #quick .qst{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.06em;
   padding:7px 11px 3px;border-top:1px solid var(--line)}
 #quick .qst:first-child{border-top:0}
@@ -168,8 +204,8 @@ button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight
 #quick .qmm.b2{background:var(--r2);border-color:var(--r2)}
 #quick .qmm.b3{background:var(--r3);border-color:var(--r3)}
 #quick .qmm.b4{background:#1b1bb0;border-color:#1b1bb0}
-#quick .qmm.hot{background:#ff5b52 !important;border-color:#ff5b52 !important;
-  color:#2a0603 !important;font-weight:800}
+#quick .qmm.hot{background:var(--hot) !important;border-color:var(--hot) !important;
+  color:var(--hot-ink) !important;font-weight:800}
 #quick .qnone{padding:10px 11px;color:var(--dim);font-size:12.5px}
 .fgrp{border-bottom:1px solid var(--line)}
 .fgrp:last-child{border-bottom:0}
@@ -180,8 +216,8 @@ button.tool.wa{background:#25d366;border-color:#25d366;color:#07231a;font-weight
   transition:transform .12s ease;display:inline-block}
 .fghead .fgn{flex:1;min-width:0}
 .fghead em{font-style:normal;font-family:var(--mono);font-size:12px;font-weight:700;
-  color:#cfd6f5;letter-spacing:.04em}
-.wapre{background:#0d0f1c;border:1px solid var(--line);border-radius:3px;padding:8px;margin-bottom:10px;
+  color:var(--soft);letter-spacing:.04em}
+.wapre{background:var(--well);border:1px solid var(--line);border-radius:3px;padding:8px;margin-bottom:10px;
   max-height:44vh;overflow:auto;text-align:center}
 .wapre img{max-width:100%;height:auto;display:block;margin:0 auto}
 #waTxt{min-height:150px;line-height:1.5}
@@ -197,7 +233,7 @@ h2.sec{
 }
 .state{margin-bottom:16px}
 .state>h3{
-  font-size:12.5px;font-weight:700;letter-spacing:.06em;margin:0 0 6px;color:#fff;
+  font-size:12.5px;font-weight:700;letter-spacing:.06em;margin:0 0 6px;color:var(--strong);
   display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
   padding:5px 0
 }
@@ -209,15 +245,15 @@ h2.sec{
 .state .grows{display:none}
 .state.open .grows{display:block}
 .state>h3 em{font-style:normal;font-family:var(--mono);font-size:12.5px;font-weight:700;
-  color:#cfd6f5;letter-spacing:.04em}
+  color:var(--soft);letter-spacing:.04em}
 .state>h3 em.wet{color:#fff;background:var(--r3);border-radius:8px;padding:1px 7px}
 .row{
   display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;
   padding:8px 10px;border:1px solid var(--line);border-radius:2px;background:var(--steel);
   margin-bottom:5px
 }
-.row.on{border-color:#3a44a8;background:#181d3f}
-.chip{width:14px;height:14px;border-radius:3px;background:#2a2f4a;border:1px solid #0a0c18}
+.row.on{border-color:var(--on-line);background:var(--on-bg)}
+.chip{width:14px;height:14px;border-radius:3px;background:var(--chip);border:1px solid var(--chip-line)}
 .nm{min-width:0}
 .nm b{font-weight:600;font-size:14px;display:block;line-height:1.25}
 .nm span{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.02em}
@@ -230,16 +266,16 @@ h2.sec{
 }
 .tag.rain{background:var(--jmm);border-color:var(--jmm);color:#fff}
 .star{background:none;border:0;cursor:pointer;font-size:15px;line-height:1;padding:0 6px 0 0;
-  color:#4a4f70;filter:grayscale(1) opacity(.5)}
+  color:var(--faint);filter:grayscale(1) opacity(.5)}
 .star.on{filter:none}
 .binhead{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--dim);
   margin:0 0 6px;text-transform:uppercase}
 #fBin .li span{color:var(--dim)}
-.state.starred h3{color:#f5c23a}
-.state.starred{border-left:2px solid #f5c23a;padding-left:9px;margin-left:-11px}
-.li .nmstar{color:#e0a02a;margin-right:5px}
-.row.near .tag{color:#8ea2ff;background:#171b30;border-color:#2a2f4a}
-.tag.storm{background:var(--amber);border-color:var(--amber);color:#1a1200;font-weight:700}
+.state.starred h3{color:var(--star)}
+.state.starred{border-left:2px solid var(--star);padding-left:9px;margin-left:-11px}
+.li .nmstar{color:var(--star);margin-right:5px}
+.row.near .tag{color:var(--link);background:var(--near-bg);border-color:var(--chip)}
+.tag.storm{background:var(--amber);border-color:var(--warn);color:#1a1200;font-weight:700}
 .empty{
   border:1px dashed var(--line);border-radius:2px;padding:22px 16px;text-align:center;
   color:var(--dim);font-size:13.5px
@@ -264,7 +300,7 @@ dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
 .fld{display:grid;grid-template-columns:76px 1fr;gap:10px;align-items:center;margin-bottom:14px}
 .fld label,.fld .lab{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);letter-spacing:.06em}
 input,textarea,select{
-  width:100%;background:#0d0f1c;border:1px solid var(--line);color:var(--text);
+  width:100%;background:var(--well);border:1px solid var(--line);color:var(--text);
   border-radius:2px;padding:7px 9px;font-family:var(--mono);font-size:12.5px
 }
 
@@ -274,11 +310,11 @@ input,textarea,select{
 .srcpick{width:100%}
 button.srchead{
   width:100%;display:flex;align-items:center;gap:8px;
-  background:#0d0f1c;border:1px solid var(--line);color:var(--text);
+  background:var(--well);border:1px solid var(--line);color:var(--text);
   border-radius:2px;padding:8px 9px;font-family:var(--mono);font-size:12.5px;
   cursor:pointer;text-align:left
 }
-button.srchead:hover{border-color:#454d80}
+button.srchead:hover{border-color:var(--hover)}
 button.srchead .caret{margin-left:auto;color:var(--dim);transition:transform .12s ease}
 button.srchead[aria-expanded="true"] .caret{transform:rotate(90deg)}
 .srctiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px;margin-top:8px}
@@ -288,9 +324,9 @@ button.srctile{
   border-radius:4px;padding:8px 7px;font-family:var(--mono);font-size:12px;
   cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:40px
 }
-button.srctile:hover{border-color:#454d80}
+button.srctile:hover{border-color:var(--hover)}
 button.srctile[aria-pressed="true"]{background:var(--jmm);border-color:var(--jmm);color:#fff}
-.srcpick .on{font-size:10.5px;color:var(--amber);letter-spacing:.04em}
+.srcpick .on{font-size:10.5px;color:var(--warn);letter-spacing:.04em}
 /* iOS zooms the page whenever a focused field is under 16px. Nothing else
    stops it — not viewport flags, not user-scalable. Meet the threshold. */
 @media(max-width:640px){
@@ -300,21 +336,21 @@ textarea{min-height:150px;line-height:1.45;resize:vertical}
 .hint{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);
   line-height:1.6;margin:8px 0 0}
 .list{max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:2px;margin-top:10px}
-.li{display:flex;align-items:center;gap:8px;padding:8px 9px;border-bottom:1px solid #232744;font-size:13.5px}
+.li{display:flex;align-items:center;gap:8px;padding:8px 9px;border-bottom:1px solid var(--hair);font-size:13.5px}
 .li:last-child{border-bottom:0}
 .li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .li code{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .x{background:none;border:0;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
 .foot{display:flex;gap:7px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
 .drop{border:1px dashed var(--line);border-radius:2px;padding:30px 14px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
-.drop.over{border-color:var(--jmm);color:var(--text);background:#141833}
+.drop.over{border-color:var(--jmm);color:var(--text);background:var(--on-bg)}
 /* touch-action:none meant a finger anywhere on the preview was captured, so a
    tall phone screenshot became a scroll trap. pan-y lets a vertical drag scroll
    the dialog while a tap still places an anchor, and the rails either side give
    a guaranteed place to swipe. */
 .cvwrap{position:relative;margin-bottom:10px}
 #calCv{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:2px;
-  touch-action:pan-y;cursor:crosshair;background:#0d0f1c}
+  touch-action:pan-y;cursor:crosshair;background:var(--well)}
 /* Invisible rails laid OVER the map rather than insetting it — the preview
    keeps the full width, and a thumb landing near either edge scrolls the
    dialog instead of dropping an anchor. */
@@ -327,12 +363,12 @@ textarea{min-height:150px;line-height:1.45;resize:vertical}
 .loupe{position:fixed;width:132px;height:132px;border-radius:50%;overflow:hidden;
   border:2px solid #fff;box-shadow:0 8px 26px -8px #000;pointer-events:none;display:none;z-index:200}
 .loupe canvas{display:block;width:132px;height:132px}
-select{width:100%;background:#0d0f1c;border:1px solid var(--line);color:var(--text);
+select{width:100%;background:var(--well);border:1px solid var(--line);color:var(--text);
   border-radius:2px;padding:7px 9px;font-family:var(--mono);font-size:12.5px}
 dialog#cal{width:min(940px,96vw)}
 .toast{
   position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99;
-  background:#fff;color:#101014;font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+  background:var(--toast-bg);color:var(--toast-fg);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
   padding:9px 16px;border-radius:2px;box-shadow:0 8px 30px -8px #000;opacity:0;pointer-events:none;
   transition:opacity .18s
 }
@@ -344,7 +380,7 @@ dialog#cal{width:min(940px,96vw)}
   position:fixed;left:12px;right:12px;margin:0 auto;width:fit-content;z-index:150;
   bottom:calc(16px + env(safe-area-inset-bottom));
   display:flex;align-items:center;gap:10px;
-  background:#fff;color:#101014;font-family:var(--mono);font-size:13px;letter-spacing:.03em;
+  background:var(--toast-bg);color:var(--toast-fg);font-family:var(--mono);font-size:13px;letter-spacing:.03em;
   padding:8px 8px 8px 16px;border-radius:6px;box-shadow:0 8px 30px -8px #000
 }
 .uptoast[hidden]{display:none}
@@ -352,7 +388,7 @@ dialog#cal{width:min(940px,96vw)}
   font:inherit;font-weight:700;min-height:40px;padding:0 14px;border-radius:4px;cursor:pointer;
   border:1px solid var(--jmm);background:var(--jmm);color:#fff;white-space:nowrap
 }
-.uptoast button.x{background:transparent;color:#5b6076;border-color:transparent;padding:0 10px;font-size:16px}
+.uptoast button.x{background:transparent;color:inherit;opacity:.65;border-color:transparent;padding:0 10px;font-size:16px}
 .uptoast button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* First launch: choose a language before anything else is usable. */
 #langpick{
@@ -369,7 +405,7 @@ dialog#cal{width:min(940px,96vw)}
   width:min(18rem,84vw);min-height:58px;font-family:var(--sans);font-size:19px;font-weight:600;
   background:var(--steel);color:var(--text);border:1px solid var(--line);border-radius:8px;cursor:pointer
 }
-#langpick button:hover{border-color:#3d4470}
+#langpick button:hover{border-color:var(--hover)}
 #langpick button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 body.picking{overflow:hidden}
 @media(max-width:640px){
@@ -425,6 +461,7 @@ body.picking{overflow:hidden}
       <h1 class="zh" data-i="brandZh">雨情 Lab</h1>
       <h1 class="en" data-i="brandEn" hidden>RAINBULLETIN Lab</h1>
       <span class="spacer"></span>
+      <button class="langbtn" id="theme" data-aria="ariaTheme"></button>
       <button class="langbtn" id="lang">中文</button>
     </div>
     <span class="sub" data-i="tagline">降雨县属着色</span>
@@ -924,6 +961,7 @@ var I18N = {
       "\u8d34\u56fe\u8d8a\u65b0\uff0c\u901a\u62a5\u8d8a\u51c6\u2014\u2014\u5b83\u53ea\u8bfb\u4f60\u8d34\u8fdb\u53bb\u7684\u90a3\u5f20\u56fe\u3002",
       "\u6b64\u901a\u62a5\u4e3a\u4e2a\u4eba\u53c2\u8003\uff0c\u5b98\u65b9\u8b66\u62a5\u4ee5 MET Malaysia \u4e3a\u51c6\u3002"
     ],
+    ariaTheme:"\u5207\u6362\u6d45\u8272 / \u6df1\u8272\u6a21\u5f0f",
     ariaIo:"\u6536\u85cf\u70b9\u6587\u672c", ariaZrA:"Z-R \u7cfb\u6570 a", ariaZrB:"Z-R \u6307\u6570 b",
     ariaZrCap:"dBZ \u4e0a\u9650", ariaWaTxt:"WhatsApp \u6587\u5b57", ariaFile:"\u9009\u62e9\u56fe\u7247",
     pasteDenied:"\u65e0\u6cd5\u8bfb\u53d6\u526a\u8d34\u677f", pasteNoApi:"\u6b64\u73af\u5883\u4e0d\u652f\u6301\u8bfb\u53d6\u526a\u8d34\u677f",
@@ -1030,6 +1068,7 @@ var I18N = {
       "The fresher the screenshot, the truer the bulletin \u2014 it only ever reads the image you paste.",
       "Personal reference; official warnings come from MET Malaysia."
     ],
+    ariaTheme:"Switch light / dark mode",
     ariaIo:"Favourites as text", ariaZrA:"Z-R coefficient a", ariaZrB:"Z-R exponent b",
     ariaZrCap:"dBZ cap", ariaWaTxt:"WhatsApp message text", ariaFile:"Choose an image",
     pasteDenied:"Clipboard read not allowed", pasteNoApi:"Clipboard reading unavailable here",
@@ -1136,6 +1175,7 @@ var I18N = {
       "Lebih baharu tangkapan skrin, lebih tepat buletin — ia hanya membaca imej yang anda tampal.",
       "Rujukan peribadi sahaja; amaran rasmi dikeluarkan oleh MET Malaysia."
     ],
+    ariaTheme:"Tukar mod terang / gelap",
     ariaIo:"Kegemaran sebagai teks", ariaZrA:"Pekali Z-R a", ariaZrB:"Eksponen Z-R b",
     ariaZrCap:"Had dBZ", ariaWaTxt:"Teks mesej WhatsApp", ariaFile:"Pilih imej",
     pasteDenied:"Bacaan papan klip tidak dibenarkan", pasteNoApi:"Bacaan papan klip tidak tersedia di sini",
@@ -3955,7 +3995,7 @@ function waArmSend() {
     return;
   }
   btn.disabled = true;
-  hint.textContent = T("waWaitFc"); hint.style.color = "var(--amber)";
+  hint.textContent = T("waWaitFc"); hint.style.color = "var(--warn)";
   var t0 = Date.now();
   WAWAIT = { iv:setInterval(function () {
     var late = Date.now() - t0 > 6000;
@@ -3976,7 +4016,7 @@ function waArmSend() {
     });
     btn.disabled = false;
     hint.textContent = T(late ? "waFcLate" : "waEdit");
-    hint.style.color = late ? "var(--amber)" : "";
+    hint.style.color = late ? "var(--warn)" : "";
   }, 250) };
 }
 
@@ -4329,7 +4369,7 @@ function loadImage(src) {
     paintTimeBar();
     drawCal();
     var t = document.getElementById("calFitTxt");
-    t.textContent = T("scanning"); t.style.color = "var(--amber)";
+    t.textContent = T("scanning"); t.style.color = "var(--warn)";
     document.getElementById("calApply").disabled = true;
     /* let the browser paint the notice before the search blocks the thread */
     setTimeout(runRegistration, 40);
@@ -4623,7 +4663,7 @@ function paintAnchors() {
       + (cal.cov != null ? "  \u00b7  " + T("cover") + " " + Math.round(cal.cov * 100) + "%" : "")
       + "  \u00b7  " + cal.kmPerPx.toFixed(2) + " km/px  \u00b7  " + cal.span.toFixed(1) + "\u00b0";
     t.style.color = (cal.fit >= 2.6 && cal.margin >= 1.3 && (cal.cov == null || cal.cov >= 0.7))
-                  ? "var(--dim)" : "var(--amber)";
+                  ? "var(--dim)" : "var(--warn)";
     document.getElementById("calApply").disabled = false;
     return;
   }
@@ -4633,7 +4673,7 @@ function paintAnchors() {
       why += "  \u00b7  " + LASTREG.runners.join("  ")
            + "  \u00b7  " + T("margin") + " " + (isFinite(LASTREG.margin) ? LASTREG.margin.toFixed(2) : "\u2014");
     }
-    t.textContent = why; t.style.color = "var(--amber)";
+    t.textContent = why; t.style.color = "var(--warn)";
   } else {
     var bad = cal.rmsKm > 12, extra = "";
     if (IMGX) {
@@ -4818,7 +4858,7 @@ function paintLayers() {
     L.cells.forEach(function (t) { if (t.inn > 0) { cov++; if (t.echo > 0) wet++; } });
     var pct = cov ? Math.round(100 * wet / cov) : 0;
     var d = document.createElement("div"); d.className = "li";
-    d.innerHTML = "<span></span><code" + (pct > 70 ? " style='color:var(--amber)'" : "") + ">" +
+    d.innerHTML = "<span></span><code" + (pct > 70 ? " style='color:var(--warn)'" : "") + ">" +
                   cov + "/160 \u00b7 " + wet + " " + T("wetN") + " (" + pct + "%) \u00b7 " +
                   L.iw + "\u00d7" + L.ih +
                   "</code><button class='x' aria-label='remove'>\u00d7</button>";
@@ -5981,7 +6021,7 @@ document.getElementById("waSend").onclick   = function () {
   if (keepOpen) {
     document.getElementById("waCopy").hidden = false;
     var h = document.getElementById("waHint");
-    h.textContent = T("waDeskStep"); h.style.color = "var(--amber)";
+    h.textContent = T("waDeskStep"); h.style.color = "var(--warn)";
   } else {
     waClose();
   }
@@ -6089,6 +6129,36 @@ if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     });
     window.addEventListener("online", swCheck);
   } catch (e) {}
+}
+
+/* ══ light / dark theme ══
+   The <head> script has already put data-theme on <html>. Nothing is saved
+   until the button is tapped: until then the app follows the phone, including
+   when the phone switches at sunset. Once tapped, the choice is kept. */
+var THEME_BG = { dark:"#0f1020", light:"#f1f2f8" };
+function curTheme() {
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  /* the glyph shows the theme in use now, like the language button */
+  document.getElementById("theme").textContent = t === "light" ? "\u2600" : "\u263e";
+  var m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", THEME_BG[t]);
+}
+document.getElementById("theme").onclick = function () {
+  var t = curTheme() === "light" ? "dark" : "light";
+  store.set("theme", t); applyTheme(t);
+};
+applyTheme(curTheme());
+if (window.matchMedia) {
+  var THEME_MQ = matchMedia("(prefers-color-scheme: light)");
+  var themeFollow = function (e) {
+    var saved = store.get("theme");
+    if (saved !== "light" && saved !== "dark") applyTheme(e.matches ? "light" : "dark");
+  };
+  if (THEME_MQ.addEventListener) THEME_MQ.addEventListener("change", themeFollow);
+  else if (THEME_MQ.addListener) THEME_MQ.addListener(themeFollow);
 }
 
 /* ══ first-launch language picker ══ */
