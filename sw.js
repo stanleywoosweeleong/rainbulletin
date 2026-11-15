@@ -1,37 +1,82 @@
-/* 雨情通报 RainBulletin MY — service worker
-   Keep CACHE_VERSION in step with the constant in index.html. */
-var CACHE_VERSION = "rbmy-v4.49.0-20261115";
-/* icon.svg belongs here: since v4.29.1 the page links it as favicon and
-   apple-touch-icon, and the manifest names it too — without it cached, an
-   offline launch 404s for its own icon. */
-var SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg"];
-var SHARE_CACHE = "rbmy-share";
+/* 雨情 RainBulletin MY — self-updating service worker
 
-/* The page can ask for an immediate handover after it has told the user. */
-self.addEventListener("message", function (e) {
-  if (e.data === "skipWaiting") self.skipWaiting();
-});
+   There is no version number to bump. The app opens instantly from the cache;
+   the page then sends "check", every shell file is re-fetched past the HTTP
+   cache, and if index.html came back different every open window is sent
+   "updated" so it can offer a reload. Deploying is just pushing the files. */
+"use strict";
 
+var CACHE_PREFIX = "rbmy-";           /* this app's caches — see activate */
+var CACHE = "rbmy-shell";             /* fixed name; never changes between deploys */
+var SHARE_CACHE = "rbmy-share";       /* parked share-target files; not ours to clear */
+var INDEX = "./index.html";
+/* icon.svg belongs here: the page links it as favicon and apple-touch-icon,
+   the manifest names it, and the first-launch language picker shows it —
+   without it cached, an offline launch 404s for its own icon. */
+var SHELL = [INDEX, "./manifest.json", "./icon.svg"];
+
+function sameBytes(a, b) {
+  if (a.byteLength !== b.byteLength) return false;
+  var x = new Uint8Array(a), y = new Uint8Array(b);
+  for (var i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
+  return true;
+}
+
+/* Fetch one file past the HTTP cache and store it. Resolves true only when a
+   copy was already cached and the new one differs. Errors and non-200
+   responses leave the cache alone, so a 404/503 from the host can never
+   replace the offline app with an error page. */
+function refresh(url) {
+  return fetch(url, { cache: "no-cache" }).then(function (res) {
+    if (!res || !res.ok) return false;
+    return caches.open(CACHE).then(function (c) {
+      return c.match(url).then(function (old) {
+        return Promise.all([
+          old ? old.arrayBuffer() : null,
+          res.clone().arrayBuffer()
+        ]).then(function (b) {
+          var changed = !!b[0] && !sameBytes(b[0], b[1]);
+          return c.put(url, res).then(function () { return changed; });
+        });
+      });
+    });
+  }).catch(function () { return false; });
+}
+
+function refreshShell() {
+  return Promise.all(SHELL.map(refresh)).then(function (changed) {
+    return changed[SHELL.indexOf(INDEX)];
+  });
+}
+
+/* install: precache, then take over at once. Safe because the cache name is
+   stable — a new worker never strands an open page on a deleted cache. */
 self.addEventListener("install", function (e) {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE_VERSION).then(function (c) { return c.addAll(SHELL); }));
+  e.waitUntil(refreshShell().then(function () { return self.skipWaiting(); }));
 });
 
+/* activate: delete only THIS app's other caches (the old rbmy-v4.x ones).
+   Cache Storage is shared by the whole origin — on <user>.github.io that is
+   every project page — so caches without our prefix are never touched. */
 self.addEventListener("activate", function (e) {
   e.waitUntil(caches.keys().then(function (ks) {
-    return Promise.all(ks.map(function (k) { return k === CACHE_VERSION ? null : caches.delete(k); }));
+    return Promise.all(ks.map(function (k) {
+      return (k.indexOf(CACHE_PREFIX) === 0 && k !== CACHE && k !== SHARE_CACHE)
+        ? caches.delete(k) : null;
+    }));
   }).then(function () { return self.clients.claim(); }));
 });
 
-/* ── share target ──────────────────────────────────────────────────
-   Android and desktop Chrome can hand files to an installed PWA through the
-   system share sheet. The POST cannot be read by the page directly, so it is
-   caught here, the files are parked in a cache, and the page is redirected to
-   collect them. iOS does not implement share_target, so this never fires
-   there — the file picker remains the route on iPhone. */
 self.addEventListener("fetch", function (e) {
-  var url = new URL(e.request.url);
+  var url;
+  try { url = new URL(e.request.url); } catch (err) { return; }
 
+  /* ── share target ──────────────────────────────────────────────────
+     Android and desktop Chrome can hand files to an installed PWA through the
+     system share sheet. The POST cannot be read by the page directly, so it is
+     caught here, the files are parked in a cache, and the page is redirected to
+     collect them. iOS does not implement share_target, so this never fires
+     there — the file picker remains the route on iPhone. */
   if (e.request.method === "POST" && url.pathname.indexOf("share-target") !== -1) {
     e.respondWith((async function () {
       try {
@@ -57,61 +102,50 @@ self.addEventListener("fetch", function (e) {
 
   if (e.request.method !== "GET") return;
 
-  /* The app talks to no weather API at all — rain arrives only as pasted
-     images — so everything cacheable here is the shell itself. */
-  if (url.origin !== location.origin) return;
+  /* Cross-origin (the Open-Meteo forecast call) is the page's business. */
+  if (url.origin !== self.location.origin) return;
 
-  /* The app shell itself is fetched network-first, with the cache as a fast
-     fallback. Everything else stays cache-first (stale-while-revalidate).
-
-     Why the split: cache-first on index.html means a new build lands in the
-     cache on one launch and is only USED on the next, so every update is a
-     launch behind. For someone opening this several times a day during the
-     monsoon that is the whole delay. Network-first closes it, and the 2-second
-     race keeps a slow or dead connection from ever making the app feel broken
-     — past that we serve the cached copy and let the background update land
-     for next time. */
-  var isShell = e.request.mode === "navigate"
-             || url.pathname.replace(/^.*\//, "") === "index.html";
-  if (isShell) {
-    e.respondWith((async function () {
-      var cached = caches.match("./index.html");
-      try {
-        var res = await Promise.race([
-          fetch(e.request),
-          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("slow")); }, 2000); })
-        ]);
-        if (res && res.ok && !url.search) {
+  /* Navigations get the cached app at once — query variants like ./?shared=1
+     included — and the network only when nothing is cached yet. Freshness is
+     the "check" message's job, not this handler's: on weak rural signal a
+     network-first launch means waiting out a timeout before anything shows. */
+  if (e.request.mode === "navigate") {
+    e.respondWith(caches.match(INDEX).then(function (hit) {
+      if (hit) return hit;
+      return fetch(e.request).then(function (res) {
+        if (res.ok && !url.search) {
           var copy = res.clone();
-          caches.open(CACHE_VERSION).then(function (c) { c.put(e.request, copy); });
+          caches.open(CACHE).then(function (c) { c.put(INDEX, copy); });
         }
         return res;
-      } catch (err) {
-        var hit = await cached;
-        if (hit) return hit;
-        return fetch(e.request);              /* nothing cached: let it fail honestly */
-      }
-    })());
+      });
+    }));
     return;
   }
 
-  e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      var live = fetch(e.request).then(function (res) {
-        /* don't let query variants (./?shared=1) pollute the versioned shell */
-        if (res && res.ok && !url.search) {
-          var copy = res.clone();
-          caches.open(CACHE_VERSION).then(function (c) { c.put(e.request, copy); });
-        }
-        return res;
-      }).catch(function () {
-        if (hit) return hit;
-        /* offline navigation to an uncached variant still gets the app shell
-           instead of a browser error page */
-        if (e.request.mode === "navigate") return caches.match("./index.html");
-        return undefined;
-      });
-      return hit || live;
-    })
-  );
+  /* Other same-origin files: cache first, then network, keeping what comes
+     back. ignoreSearch is off on purpose — only exact shell URLs are served. */
+  e.respondWith(caches.match(e.request).then(function (hit) {
+    if (hit) return hit;
+    return fetch(e.request).then(function (res) {
+      if (res && res.status === 200 && res.type === "basic" && !url.search) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+      }
+      return res;
+    });
+  }));
+});
+
+/* "check" from a page: refresh the shell and, if index.html changed, tell
+   every open window so each can offer a reload. The page drives this rather
+   than the fetch handler so the answer cannot arrive before anyone listens. */
+self.addEventListener("message", function (e) {
+  if (e.data !== "check") return;
+  e.waitUntil(refreshShell().then(function (changed) {
+    if (!changed) return;
+    return self.clients.matchAll({ type: "window" }).then(function (list) {
+      list.forEach(function (c) { c.postMessage("updated"); });
+    });
+  }));
 });

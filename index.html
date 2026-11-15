@@ -337,6 +337,41 @@ dialog#cal{width:min(940px,96vw)}
   transition:opacity .18s
 }
 .toast.show{opacity:1}
+/* The update bar is its own element: the toast above fades after 1.6 s, and
+   "a new version is ready" has to stay until it is answered. [hidden] needs
+   its own rule — display:flex would silently override the attribute. */
+.uptoast{
+  position:fixed;left:12px;right:12px;margin:0 auto;width:fit-content;z-index:150;
+  bottom:calc(16px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:10px;
+  background:#fff;color:#101014;font-family:var(--mono);font-size:13px;letter-spacing:.03em;
+  padding:8px 8px 8px 16px;border-radius:6px;box-shadow:0 8px 30px -8px #000
+}
+.uptoast[hidden]{display:none}
+.uptoast button{
+  font:inherit;font-weight:700;min-height:40px;padding:0 14px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--jmm);background:var(--jmm);color:#fff;white-space:nowrap
+}
+.uptoast button.x{background:transparent;color:#5b6076;border-color:transparent;padding:0 10px;font-size:16px}
+.uptoast button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+/* First launch: choose a language before anything else is usable. */
+#langpick{
+  position:fixed;inset:0;z-index:300;background:var(--slate);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))
+}
+#langpick[hidden]{display:none}
+#langpick:focus{outline:0}
+#langpick img{width:84px;height:84px;border-radius:18px}
+#langpick .lptitle{margin:0 0 14px;text-align:center;font-size:22px;font-weight:700;letter-spacing:.2em;color:var(--text)}
+#langpick .lptitle span{display:block;margin-top:4px;font-size:13px;font-weight:800;letter-spacing:.16em;color:var(--dim)}
+#langpick button{
+  width:min(18rem,84vw);min-height:58px;font-family:var(--sans);font-size:19px;font-weight:600;
+  background:var(--steel);color:var(--text);border:1px solid var(--line);border-radius:8px;cursor:pointer
+}
+#langpick button:hover{border-color:#3d4470}
+#langpick button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+body.picking{overflow:hidden}
 @media(max-width:640px){
   /* Only the main toolbar becomes a keypad. The little option bars inside the
      dialogs — sensitivity, Z-R presets, timestamp — are a different thing and
@@ -375,6 +410,14 @@ dialog#cal{width:min(940px,96vw)}
 </style>
 </head>
 <body>
+<div id="langpick" role="dialog" aria-modal="true" tabindex="-1"
+     aria-label="中文 · English · Bahasa Melayu" hidden>
+  <img src="./icon.svg" alt="">
+  <p class="lptitle">雨情<span>RAINBULLETIN</span></p>
+  <button type="button" data-lang="zh" lang="zh-Hans">中文</button>
+  <button type="button" data-lang="en" lang="en">English</button>
+  <button type="button" data-lang="ms" lang="ms">Bahasa Melayu</button>
+</div>
 <div class="wrap">
 
   <div class="mast">
@@ -573,6 +616,11 @@ dialog#cal{width:min(940px,96vw)}
 
 <div class="loupe" id="loupe"><canvas id="loupeCv" width="132" height="132"></canvas></div>
 <div class="toast" id="toast"></div>
+<div class="uptoast" id="uptoast" role="status" aria-live="polite" hidden>
+  <span data-i="swNew">新版本已就绪</span>
+  <button type="button" id="upgo" data-i="upRefresh">刷新</button>
+  <button type="button" class="x" id="upx" data-aria="upDismiss">×</button>
+</div>
 
 <script>
 "use strict";
@@ -584,13 +632,14 @@ dialog#cal{width:min(940px,96vw)}
 var NS            = "rainbulletin-my";
 /* ══════════════════════════════════════════════════════════════════
    雨情 RainBulletin MY — MAINTENANCE MAP
-   Single-file offline-first bilingual PWA. Stanley pastes a Windy or Rain
+   Single-file offline-first trilingual PWA. Stanley pastes a Windy or Rain
    Alarm radar screenshot; the app georeferences it, reprojects onto 160
    Malaysia ADM2 districts, and renders the morning bulletin card he
    broadcasts on WhatsApp.
 
    RELEASE CHECKLIST (every publish, no exceptions)
-   1. Bump CACHE_VERSION here AND in sw.js — they must match.
+   1. No version to bump: sw.js compares index.html byte-for-byte on every
+      launch and offers installed users the new copy. Just push.
    2. node --check the extracted script (build.py does this).
    3. Run the regression suites; every one green before shipping.
    4. Ship four files together: index.html, sw.js, manifest.json, icon.svg.
@@ -637,7 +686,16 @@ var NS            = "rainbulletin-my";
      agronomic numbers; broadcast text = states + districts only; recall
      replays hand-anchored cals ONLY (ANCH.length >= 2), never auto results.
    ══════════════════════════════════════════════════════════════════ */
-var CACHE_VERSION = "rbmy-v4.49.0-20261115";
+/* Date of the copy that is running, for the footer. It reads the page's
+   Last-Modified header, which survives the service-worker cache, so it needs
+   no upkeep — unlike the version string this replaced. */
+function buildStamp() {
+  var d = new Date(document.lastModified);
+  if (isNaN(d)) return "";
+  function p(n) { return String(n).padStart(2, "0"); }
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
+       + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
 var SEED_VERSION  = 4;
 var STALE_MS      = 30 * 60 * 1000;   // a pasted image older than this is called out, loudly
 
@@ -816,7 +874,7 @@ var I18N = {
     stopComing:"\u53ef\u80fd\u8f6c{w}",
     stopArgue:"\u96f7\u8fbe\u4ecd\u6709\u5f3a\u964d\u96e8\uff0c\u9884\u62a5\u5df2\u8f6c\u5c0f \u2014 \u4ee5\u96f7\u8fbe\u4e3a\u51c6",
     stopArgued:"\u90e8\u5206\u5730\u70b9\u9884\u62a5\u504f\u4f4e",
-    swNew:"\u65b0\u7248\u672c\u5df2\u5c31\u7eea \u2014 \u70b9\u6b64\u91cd\u8f7d", swNewShort:"\u65b0\u7248\u5f85\u91cd\u8f7d",
+    swNew:"\u65b0\u7248\u672c\u5df2\u5c31\u7eea", upRefresh:"\u5237\u65b0", upDismiss:"\u5173\u95ed", swNewShort:"\u65b0\u7248\u5f85\u91cd\u8f7d",
     stopNote:"\u9884\u62a5", srcFav:"\u6536\u85cf\u70b9", srcDist:"\u53bf\u5c5e",
     inDist:"\u672c\u53bf\u6709\u96e8", btnPins:"\u663e\u793a\u70b9", fFind:"\u67e5\u627e", starred:"\u91cd\u70b9\u5173\u6ce8",
     btnHere:"\u7528\u5f53\u524d\u4f4d\u7f6e", locating:"\u5b9a\u4f4d\u4e2d\u2026", noGeo:"\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e",
@@ -922,7 +980,7 @@ var I18N = {
     stopComing:"{w} likely from",
     stopArgue:"Radar still shows heavy rain; the forecast already has it easing \u2014 trust the radar",
     stopArgued:"forecast reads low at some points",
-    swNew:"A new version is ready \u2014 tap to reload", swNewShort:"update ready",
+    swNew:"A new version is ready", upRefresh:"Refresh", upDismiss:"Dismiss", swNewShort:"update ready",
     stopNote:"forecast", srcFav:"favourites", srcDist:"districts",
     inDist:"rain in district:", btnPins:"Pins", fFind:"Find", starred:"Watching",
     btnHere:"Use my location", locating:"Locating\u2026", noGeo:"Location unavailable",
@@ -1028,7 +1086,7 @@ var I18N = {
     stopComing:"{w} mungkin bermula",
     stopArgue:"Radar masih menunjukkan hujan lebat; ramalan sudah menjangka reda — percayakan radar",
     stopArgued:"ramalan terlalu rendah di beberapa tempat",
-    swNew:"Versi baharu sudah sedia — tekan untuk muat semula", swNewShort:"kemas kini sedia",
+    swNew:"Versi baharu sudah sedia", upRefresh:"Muat semula", upDismiss:"Tutup", swNewShort:"kemas kini sedia",
     stopNote:"ramalan", srcFav:"kegemaran", srcDist:"daerah",
     inDist:"hujan dalam daerah:", btnPins:"Pin", fFind:"Cari", starred:"Dipantau",
     btnHere:"Guna lokasi saya", locating:"Mengesan lokasi…", noGeo:"Lokasi tidak tersedia",
@@ -1100,8 +1158,22 @@ var LANGS = ["zh", "en", "ms"];
 var LANG_TAG = { zh:"zh-Hans", en:"en", ms:"ms" };
 var LANG_BTN = { zh:"\u4e2d\u6587", en:"EN", ms:"BM" };
 var LANG_DATE = { zh:"zh-Hans", en:"en-GB", ms:"ms-MY" };
-var LANG = store.get("lang", "zh");
-if (!I18N[LANG]) LANG = "zh";
+var LANG = store.get("lang");
+/* "First launch" is simply "no valid saved language" — no separate flag, so a
+   missing or corrupted value leads back to the picker, not to a broken UI. */
+var FIRST_LAUNCH = !I18N[LANG];
+if (FIRST_LAUNCH) LANG = "zh";        /* what renders behind the picker */
+/* The one place a language choice is saved. It saves even when the choice
+   equals the current language: picking the default on first launch must still
+   be remembered, or the picker would come back on every launch. */
+function setLang(l) {
+  if (!I18N[l]) return false;
+  var changed = (l !== LANG);
+  LANG = l;
+  store.set("lang", LANG);
+  if (changed) applyLang();
+  return true;
+}
 function T(k){ var v = I18N[LANG][k]; return v == null ? I18N.en[k] : v; }
 
 /* ── rain scale — thresholds follow MET Malaysia hujan lebat (≥20 mm/h) ── */
@@ -3386,12 +3458,12 @@ function render() {
   /* Which copy am I looking at? file:// for quick iteration, Pages for the
      phone — without this it is easy to test a build you already replaced. */
   var bn = document.getElementById("buildNote");
-  bn.textContent = CACHE_VERSION + "  \u00b7  "
+  bn.textContent = buildStamp() + "  \u00b7  "
     + (location.protocol === "file:" ? "local file"
        : location.hostname || "local server")
     + (("serviceWorker" in navigator && navigator.serviceWorker.controller) ? "  \u00b7  SW" : "")
-    /* stays visible after the toast fades, so he can see a reload is pending
-       without having to remember the toast */
+    /* stays visible after the update bar is dismissed, so he can see a reload
+       is pending without having to remember it */
     + (typeof SWNEW !== "undefined" && SWNEW ? "  \u00b7  " + T("swNewShort") : "");
   paintQuick();                 /* a new paste changes who is over the line */
   paintRegionHint();
@@ -5578,7 +5650,7 @@ function applyLang() {
 }
 
 document.getElementById("lang").onclick = function () {
-  LANG = LANGS[(LANGS.indexOf(LANG) + 1) % LANGS.length]; store.set("lang", LANG); applyLang();
+  setLang(LANGS[(LANGS.indexOf(LANG) + 1) % LANGS.length]);
   showProbe(null);
 };
 [["vAll","all"],["vPen","pen"],["vBor","bor"]].forEach(function (p) {
@@ -5934,53 +6006,69 @@ setInterval(function () { if (LAYERS.length) drawBulletin(); }, 60000);
 
 /* PWA — registers only when actually served over http(s) */
 /* ══ update checking ═══════════════════════════════════════════════
-   A PWA only re-checks its worker on navigation, so a session left open all
-   morning never notices a new build. This asks again whenever the app comes
-   back to the foreground — throttled, because on iOS every glance at another
-   app and back fires that event.
+   The worker serves the saved copy at once and holds one fixed cache, so
+   nothing here depends on a version number. On launch, and whenever the app
+   comes back to the foreground (an installed PWA stays open for days), the
+   page asks the worker to "check": it re-fetches the shell past the HTTP
+   cache and answers "updated" if index.html changed. Throttled, because on
+   iOS every glance at another app and back fires the visibility event.
 
    It NEVER reloads by itself. Swapping the code out from under someone who is
    mid-paste, or halfway through a WhatsApp preview at 5:15am, would be a
    worse bug than being one version behind. It tells him instead, and the
-   reload happens when he taps. */
-var SWREG = null, SWASK = 0, SWNEW = false;
+   reload happens when he taps. Dismissed, the new copy is simply what the
+   next launch opens. */
+var SWASK = 0, SWNEW = false;
 function swCheck() {
-  if (!SWREG || Date.now() - SWASK < 60000) return;
+  if (navigator.onLine === false || Date.now() - SWASK < 60000) return;
   SWASK = Date.now();
-  try { SWREG.update().catch(function () {}); } catch (e) {}
+  navigator.serviceWorker.ready.then(function (reg) {
+    if (reg.active) reg.active.postMessage("check");
+  }).catch(function () {});
 }
 function swAnnounce() {
   if (SWNEW) return;
   SWNEW = true;
-  var t = document.getElementById("toast");
-  t.style.cursor = "pointer";
-  t.onclick = function () { location.reload(); };
-  toast(T("swNew"));
+  document.getElementById("uptoast").hidden = false;
   try { render(); } catch (e) {}      /* redraw the stamp with the marker */
 }
+document.getElementById("upgo").onclick = function () { location.reload(); };
+document.getElementById("upx").onclick  = function () { document.getElementById("uptoast").hidden = true; };
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
   try {
-    navigator.serviceWorker.register("./sw.js").then(function (reg) {
-      SWREG = reg;
-      if (reg.waiting && navigator.serviceWorker.controller) swAnnounce();
-      reg.addEventListener("updatefound", function () {
-        var nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener("statechange", function () {
-          /* "installed" with a controller already present means this is an
-             update, not the first install */
-          if (nw.state === "installed" && navigator.serviceWorker.controller) swAnnounce();
-        });
-      });
-    }).catch(function () {});
+    navigator.serviceWorker.addEventListener("message", function (e) {
+      if (e.data === "updated") swAnnounce();
+    });
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").then(swCheck).catch(function () {});
+    });
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) swCheck();
+      if (document.visibilityState === "visible") swCheck();
     });
     window.addEventListener("online", swCheck);
   } catch (e) {}
 }
 
+/* ══ first-launch language picker ══ */
+function showLangPick(on) {
+  document.getElementById("langpick").hidden = !on;
+  document.body.classList.toggle("picking", on);
+  /* inert, so keyboard and screen-reader users cannot wander into an app
+     that is still in a language they did not choose */
+  document.querySelector(".wrap").inert = on;
+}
+document.getElementById("langpick").onclick = function (e) {
+  var b = e.target.closest ? e.target.closest("[data-lang]") : e.target;
+  if (b && setLang(b.getAttribute("data-lang"))) {
+    showLangPick(false); window.scrollTo(0, 0); showProbe(null);
+  }
+};
+
 applyLang(); paintBtns(); paintLayers(); render();
+/* Shown here, synchronously, so the app never flashes in the default language
+   first. Focus goes to the dialog, not a button — a focus ring on the first
+   button would look like a pre-selected language. */
+if (FIRST_LAUNCH) { showLangPick(true); document.getElementById("langpick").focus(); }
 collectShared();
 </script>
 </body>
